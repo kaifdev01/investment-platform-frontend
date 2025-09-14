@@ -6,8 +6,10 @@ import AnimatedBackground from './AnimatedBackground';
 import InvitationModal from './InvitationModal';
 import ProfileSection from './ProfileSection';
 import InvestmentEarnings from './InvestmentEarnings';
+import NewInvestmentEarnings from './NewInvestmentEarnings';
 import DepositSection from './DepositSection';
 import AdminPanel from './AdminPanel';
+import AdminWithdrawals from './AdminWithdrawals';
 import { API_URL } from '../utils/api';
 
 const Dashboard = ({ user, setUser }) => {
@@ -187,7 +189,7 @@ const Dashboard = ({ user, setUser }) => {
 
           <div style={{ background: 'rgba(255, 255, 255, 0.95)', borderRadius: '20px', marginBottom: '20px' }}>
             <div style={{ display: 'flex', borderBottom: '1px solid #e1e5e9' }}>
-              {['dashboard', 'deposit', 'tiers', 'investments', 'referrals', 'admin'].map(tab => (
+              {['dashboard', 'deposit', 'tiers', 'investments', 'referrals', ...(user?.isAdmin ? ['admin', 'withdrawals'] : [])].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -235,7 +237,7 @@ const Dashboard = ({ user, setUser }) => {
               )}
 
               {activeTab === 'tiers' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
                   {investmentTiers.map((tier, index) => (
                     <div key={index} style={{
                       background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
@@ -270,7 +272,7 @@ const Dashboard = ({ user, setUser }) => {
               )}
 
               {activeTab === 'investments' && (
-                <InvestmentEarnings
+                <NewInvestmentEarnings
                   dashboardData={dashboardData}
                   fetchDashboard={fetchDashboard}
                 />
@@ -286,6 +288,10 @@ const Dashboard = ({ user, setUser }) => {
 
               {activeTab === 'admin' && (
                 <AdminPanel />
+              )}
+
+              {activeTab === 'withdrawals' && user?.isAdmin && (
+                <AdminWithdrawals />
               )}
 
               {activeTab === 'referrals' && (
