@@ -20,10 +20,16 @@ const Dashboard = ({ user, setUser }) => {
   const [showInvitationModal, setShowInvitationModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [generatedCode, setGeneratedCode] = useState('');
+  const [loading, setLoading] = useState({
+    dashboard: false,
+    tiers: false,
+    referrals: false
+  });
 
 
   const fetchDashboard = async () => {
     try {
+      setLoading(prev => ({ ...prev, dashboard: true }));
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API_URL}/user/dashboard`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -31,11 +37,15 @@ const Dashboard = ({ user, setUser }) => {
       setDashboardData(response.data);
     } catch (error) {
       console.error('Failed to fetch dashboard data');
+    } finally {
+      setLoading(prev => ({ ...prev, dashboard: false }));
     }
   };
 
   const fetchInvestmentTiers = async () => {
+    if (investmentTiers.length > 0) return;
     try {
+      setLoading(prev => ({ ...prev, tiers: true }));
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API_URL}/user/investment-tiers`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -43,11 +53,14 @@ const Dashboard = ({ user, setUser }) => {
       setInvestmentTiers(response.data.tiers);
     } catch (error) {
       console.error('Failed to fetch investment tiers');
+    } finally {
+      setLoading(prev => ({ ...prev, tiers: false }));
     }
   };
 
   const fetchReferrals = async () => {
     try {
+      setLoading(prev => ({ ...prev, referrals: true }));
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API_URL}/user/referrals`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -55,6 +68,8 @@ const Dashboard = ({ user, setUser }) => {
       setReferrals(response.data.referrals);
     } catch (error) {
       console.error('Failed to fetch referrals');
+    } finally {
+      setLoading(prev => ({ ...prev, referrals: false }));
     }
   };
 
@@ -101,8 +116,6 @@ const Dashboard = ({ user, setUser }) => {
   useEffect(() => {
     if (user) {
       fetchDashboard();
-      fetchInvestmentTiers();
-      fetchReferrals();
 
       // Auto-refresh referrals every 5 seconds
       const interval = setInterval(() => {
@@ -123,10 +136,15 @@ const Dashboard = ({ user, setUser }) => {
     }
   }, [user]);
 
-  // Refresh referrals when switching to referrals tab
+  // Lazy load data when switching tabs
   useEffect(() => {
-    if (activeTab === 'referrals' && user) {
-      fetchReferrals();
+    if (user) {
+      if (activeTab === 'tiers') {
+        fetchInvestmentTiers();
+      }
+      if (activeTab === 'referrals') {
+        fetchReferrals();
+      }
     }
   }, [activeTab, user]);
 
@@ -211,7 +229,12 @@ const Dashboard = ({ user, setUser }) => {
             </div>
 
             <div style={{ padding: '30px' }}>
-              {activeTab === 'dashboard' && dashboardData && (
+              {activeTab === 'dashboard' && (
+                loading.dashboard ? (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <div style={{ fontSize: '18px', color: '#666' }}>Loading dashboard...</div>
+                  </div>
+                ) : dashboardData ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
                   <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
                     <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>USDC Balance</h3>
@@ -234,9 +257,15 @@ const Dashboard = ({ user, setUser }) => {
                     <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#17a2b8', margin: 0 }}>${dashboardData.accountSummary.referralRewards.toFixed(2)}</p>
                   </div>
                 </div>
+                ) : null
               )}
 
               {activeTab === 'tiers' && (
+                loading.tiers ? (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <div style={{ fontSize: '18px', color: '#666' }}>Loading investment tiers...</div>
+                  </div>
+                ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
                   {investmentTiers.map((tier, index) => (
                     <div key={index} style={{
@@ -269,6 +298,7 @@ const Dashboard = ({ user, setUser }) => {
                     </div>
                   ))}
                 </div>
+                )
               )}
 
               {activeTab === 'investments' && (
@@ -295,6 +325,11 @@ const Dashboard = ({ user, setUser }) => {
               )}
 
               {activeTab === 'referrals' && (
+                loading.referrals ? (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <div style={{ fontSize: '18px', color: '#666' }}>Loading referrals...</div>
+                  </div>
+                ) : (
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h3 style={{ color: '#333', margin: 0 }}>My Referrals ({referrals?.length || 0})</h3>
@@ -344,6 +379,7 @@ const Dashboard = ({ user, setUser }) => {
                     <p style={{ textAlign: 'center', color: '#666', margin: 0 }}>No referrals yet</p>
                   )}
                 </div>
+                )
               )}
 
 

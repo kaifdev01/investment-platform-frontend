@@ -27,6 +27,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setWithdrawals(response.data.withdrawals || []);
+      console.log('Fetched withdrawals:', response.data.withdrawals);
     } catch (error) {
       console.error('Failed to fetch withdrawals');
     }
@@ -84,7 +85,10 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
   useEffect(() => {
     fetchInvestments();
     fetchWithdrawals();
-    const interval = setInterval(fetchInvestments, 1000);
+    const interval = setInterval(() => {
+      fetchInvestments();
+      fetchWithdrawals();
+    }, 5000); // Check every 5 seconds
     return () => clearInterval(interval);
   }, []);
 
@@ -217,19 +221,41 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                       </button>
                     </div>
                   ) : investment.withdrawalRequestedAt ? (
-                    <div style={{
-                      padding: '12px',
-                      borderRadius: '8px',
-                      background: '#f8d7da',
-                      border: '1px solid #f5c6cb'
-                    }}>
-                      <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#721c24' }}>
-                        Withdrawal Pending
-                      </p>
-                      <p style={{ fontSize: '12px', color: '#721c24' }}>
-                        Admin approval required
-                      </p>
-                    </div>
+                    (() => {
+                      const withdrawal = withdrawals.find(w => {
+                        const wId = w.investmentId?._id || w.investmentId;
+                        return wId?.toString() === investment._id?.toString();
+                      });
+                      const status = withdrawal?.status || 'pending';
+                      console.log('Investment:', investment._id, 'Withdrawal:', withdrawal?.status);
+                      
+                      const statusConfig = {
+                        pending: { bg: '#fff3cd', border: '#ffeaa7', color: '#856404', text: 'Pending Admin Approval' },
+                        approved: { bg: '#d4edda', border: '#c3e6cb', color: '#155724', text: 'Approved - Processing' },
+                        rejected: { bg: '#f8d7da', border: '#f5c6cb', color: '#721c24', text: 'Rejected' },
+                        completed: { bg: '#d1ecf1', border: '#bee5eb', color: '#0c5460', text: 'Completed' }
+                      };
+                      
+                      const config = statusConfig[status];
+                      
+                      return (
+                        <div style={{
+                          padding: '12px',
+                          borderRadius: '8px',
+                          background: config.bg,
+                          border: `1px solid ${config.border}`
+                        }}>
+                          <p style={{ fontSize: '14px', fontWeight: 'bold', color: config.color, margin: 0 }}>
+                            {config.text}
+                          </p>
+                          {withdrawal?.txHash && (
+                            <p style={{ fontSize: '10px', color: config.color, margin: '4px 0 0 0', wordBreak: 'break-all' }}>
+                              TX: {withdrawal.txHash.substring(0, 20)}...
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()
                   ) : (
                     <div style={{
                       padding: '12px',
