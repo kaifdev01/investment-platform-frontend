@@ -4,8 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import AnimatedBackground from './AnimatedBackground';
 import Header from './Header';
-
-const API_URL = 'https://investment-platform-backend.vercel.app/api';
+import { API_URL } from '../utils/api';
 
 const Login = ({ setUser }) => {
   const [formData, setFormData] = useState({ email: '', password: '' });

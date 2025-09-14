@@ -8,8 +8,7 @@ import ProfileSection from './ProfileSection';
 import InvestmentEarnings from './InvestmentEarnings';
 import DepositSection from './DepositSection';
 import AdminPanel from './AdminPanel';
-
-const API_URL = 'https://investment-platform-backend.vercel.app/api';
+import { API_URL } from '../utils/api';
 
 const Dashboard = ({ user, setUser }) => {
   const [dashboardData, setDashboardData] = useState(null);
@@ -292,7 +291,7 @@ const Dashboard = ({ user, setUser }) => {
               {activeTab === 'referrals' && (
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h3 style={{ color: '#333', margin: 0 }}>My Referrals ({referrals.length})</h3>
+                    <h3 style={{ color: '#333', margin: 0 }}>My Referrals ({referrals?.length || 0})</h3>
                     <button
                       onClick={fetchReferrals}
                       style={{
@@ -308,9 +307,9 @@ const Dashboard = ({ user, setUser }) => {
                       🔄 Refresh
                     </button>
                   </div>
-                  {referrals.length > 0 ? (
+                  {referrals && referrals.length > 0 ? (
                     <div style={{ display: 'grid', gap: '15px' }}>
-                      {referrals.map((referral, index) => (
+                      {referrals.filter(referral => referral && referral.firstName).map((referral, index) => (
                         <div key={index} style={{
                           background: '#f8f9fa',
                           padding: '20px',
@@ -320,11 +319,17 @@ const Dashboard = ({ user, setUser }) => {
                           alignItems: 'center'
                         }}>
                           <div>
-                            <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>{referral.firstName} {referral.lastName}</p>
-                            <p style={{ margin: '0 0 5px 0', color: '#666' }}>{referral.email}</p>
+                            <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>
+                              {referral.firstName || 'N/A'} {referral.lastName || ''}
+                            </p>
+                            <p style={{ margin: '0 0 5px 0', color: '#666' }}>
+                              {referral.email || 'No email'}
+                            </p>
                           </div>
                           <div style={{ textAlign: 'right' }}>
-                            <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>Joined: {new Date(referral.createdAt).toLocaleDateString()}</p>
+                            <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>
+                              Joined: {referral.createdAt ? new Date(referral.createdAt).toLocaleDateString() : 'Unknown'}
+                            </p>
                           </div>
                         </div>
                       ))}

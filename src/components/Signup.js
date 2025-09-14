@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import AnimatedBackground from "./AnimatedBackground";
 import Header from "./Header";
 import { countryCodes } from "../utils/countryCodes";
+import { API_URL } from '../utils/api';
 
 const Signup = ({ setUser }) => {
   const [formData, setFormData] = useState({
@@ -92,7 +93,7 @@ const Signup = ({ setUser }) => {
     }
     try {
       const response = await axios.post(
-        `https://investment-platform-backend.vercel.app/api/send-code`,
+        `${API_URL}/send-code`,
         { email: formData.email },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -132,7 +133,7 @@ const Signup = ({ setUser }) => {
       console.log("Submitting data:", submitData);
 
       const response = await axios.post(
-        `https://investment-platform-backend.vercel.app/api/register`,
+        `${API_URL}/register`,
         submitData
       );
 

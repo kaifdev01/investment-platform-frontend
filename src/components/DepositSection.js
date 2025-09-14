@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-
-const API_URL = 'https://investment-platform-backend.vercel.app/api';
+import { API_URL } from '../utils/api';
 
 const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
   const [depositHistory, setDepositHistory] = useState([]);
