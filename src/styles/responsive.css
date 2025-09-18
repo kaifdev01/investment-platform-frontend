@@ -287,4 +287,19 @@
     width: 100% !important;
     justify-content: flex-start !important;
   }
+  
+  .invitation-modal-content {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+  }
+  
+  .invitation-code-section {
+    order: 1 !important;
+    margin-bottom: 20px !important;
+  }
+  
+  .invitation-qr-section {
+    order: 2 !important;
+  }
 }
