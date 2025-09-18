@@ -97,17 +97,38 @@
     word-wrap: break-word !important;
     overflow-wrap: break-word !important;
     min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
   }
   
   .referral-user-info {
     width: 100% !important;
     min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
   
   .referral-user-info p {
     word-wrap: break-word !important;
     overflow-wrap: break-word !important;
     white-space: normal !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  
+  .referral-level-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  
+  .referral-level-grid {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
   
   .referral-user-date {

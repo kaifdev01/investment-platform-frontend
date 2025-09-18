@@ -362,7 +362,7 @@ const Dashboard = ({ user, setUser }) => {
                     {referralTree ? (
                       <div style={{ display: 'grid', gap: '20px' }}>
                         {referralTree.level1.length > 0 && (
-                          <div style={{ background: '#e8f5e8', padding: '20px', borderRadius: '10px' }}>
+                          <div className="referral-level-container" style={{ background: '#e8f5e8', padding: '20px', borderRadius: '10px' }}>
                             <h4 style={{ color: '#155724', margin: '0 0 15px 0' }}>Level 1 - Direct Referrals (10% rewards) - {referralTree.level1.length}</h4>
                             <div style={{ display: 'grid', gap: '10px' }}>
                               {referralTree.level1.map((user, index) => (
@@ -380,7 +380,7 @@ const Dashboard = ({ user, setUser }) => {
                           </div>
                         )}
                         {referralTree.level2.length > 0 && (
-                          <div style={{ background: '#fff3cd', padding: '20px', borderRadius: '10px' }}>
+                          <div className="referral-level-container" style={{ background: '#fff3cd', padding: '20px', borderRadius: '10px' }}>
                             <h4 style={{ color: '#856404', margin: '0 0 15px 0' }}>Level 2 - Indirect Referrals (3% rewards) - {referralTree.level2.length}</h4>
                             <div style={{ display: 'grid', gap: '10px' }}>
                               {referralTree.level2.map((user, index) => (
@@ -398,7 +398,7 @@ const Dashboard = ({ user, setUser }) => {
                           </div>
                         )}
                         {referralTree.level3.length > 0 && (
-                          <div style={{ background: '#f8d7da', padding: '20px', borderRadius: '10px' }}>
+                          <div className="referral-level-container" style={{ background: '#f8d7da', padding: '20px', borderRadius: '10px' }}>
                             <h4 style={{ color: '#721c24', margin: '0 0 15px 0' }}>Level 3 - Deep Referrals (1% rewards) - {referralTree.level3.length}</h4>
                             <div style={{ display: 'grid', gap: '10px' }}>
                               {referralTree.level3.map((user, index) => (
