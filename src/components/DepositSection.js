@@ -5,19 +5,28 @@ import { API_URL } from '../utils/api';
 
 const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
   const [depositHistory, setDepositHistory] = useState([]);
+  const [failedDeposits, setFailedDeposits] = useState([]);
   const [txHash, setTxHash] = useState('');
   const [realAmount, setRealAmount] = useState('');
   const [fromAddress, setFromAddress] = useState('');
+  const [editingDeposit, setEditingDeposit] = useState(null);
 
   const fetchDepositHistory = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/user/deposit-history`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setDepositHistory(response.data.deposits);
+      const [historyResponse, failedResponse] = await Promise.all([
+        axios.get(`${API_URL}/user/deposit-history`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${API_URL}/withdrawal/failed-deposits`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      setDepositHistory(historyResponse.data.deposits || []);
+      setFailedDeposits(failedResponse.data.deposits || []);
     } catch (error) {
-      console.error('Failed to fetch deposit history');
+      console.error('Failed to fetch deposit history:', error);
     }
   };
 
@@ -43,15 +52,47 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
       setTxHash('');
       setRealAmount('');
       setFromAddress('');
+      setEditingDeposit(null);
       fetchDepositHistory();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Deposit submission failed');
     }
   };
 
+  const updateFailedDeposit = async (depositId) => {
+    if (!txHash || !realAmount) {
+      toast.error('Please fill transaction hash and amount');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_URL}/withdrawal/update-failed-deposit`,
+        { depositId, txHash, amount: realAmount },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast.success('Deposit updated! Will be reprocessed.');
+      setTxHash('');
+      setRealAmount('');
+      setEditingDeposit(null);
+      fetchDepositHistory();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Update failed');
+    }
+  };
+
   useEffect(() => {
     fetchDepositHistory();
-  }, []);
+    
+    // Auto-refresh deposit status every 30 seconds
+    const interval = setInterval(() => {
+      fetchDepositHistory();
+      fetchDashboard(); // Also refresh dashboard data
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [fetchDashboard]);
   // min 2 min lgty yahan phir loader na laga die? nhi zaroorat nhi
   return (
     <div>
@@ -122,7 +163,7 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
       </div>
 
       {/* Balance and Deposit Form Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+      <div className="deposit-layout" style={{ marginBottom: '20px' }}>
         {/* Current Balance */}
         <div style={{ background: '#e8f5e8', padding: '20px', borderRadius: '10px', textAlign: 'center' }}>
           <h4 style={{ color: '#155724', margin: '0 0 10px 0' }}>Current Balance</h4>
@@ -193,13 +234,126 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
 
 
 
+      {/* Failed Deposits */}
+      {failedDeposits.length > 0 && (
+        <div style={{ background: '#f8d7da', padding: '20px', borderRadius: '10px', border: '2px solid #dc3545', marginBottom: '20px' }}>
+          <h4 style={{ color: '#721c24', marginBottom: '15px' }}>❌ Failed Deposits - Update Required</h4>
+          {failedDeposits.map((deposit) => (
+            <div key={deposit._id} style={{
+              background: 'white',
+              padding: '15px',
+              borderRadius: '8px',
+              marginBottom: '10px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#721c24' }}>
+                    ${deposit.amount} USDC - FAILED
+                  </p>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>
+                    {new Date(deposit.createdAt).toLocaleString()}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingDeposit(deposit._id);
+                    setTxHash(deposit.txHash || '');
+                    setRealAmount(deposit.amount.toString());
+                  }}
+                  style={{
+                    background: '#ffc107',
+                    color: '#212529',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  🔧 Update
+                </button>
+              </div>
+              
+              {editingDeposit === deposit._id && (
+                <div style={{ marginTop: '15px', padding: '15px', background: '#f8f9fa', borderRadius: '6px' }}>
+                  <h5 style={{ margin: '0 0 10px 0', color: '#333' }}>Update Transaction Details</h5>
+                  <div style={{ display: 'grid', gap: '10px' }}>
+                    <input
+                      type="text"
+                      placeholder="Correct Transaction Hash"
+                      value={txHash}
+                      onChange={(e) => setTxHash(e.target.value)}
+                      style={{
+                        padding: '8px',
+                        border: '2px solid #dee2e6',
+                        borderRadius: '6px',
+                        fontSize: '14px'
+                      }}
+                    />
+                    <input
+                      type="number"
+                      placeholder="Correct Amount (USDC)"
+                      value={realAmount}
+                      onChange={(e) => setRealAmount(e.target.value)}
+                      style={{
+                        padding: '8px',
+                        border: '2px solid #dee2e6',
+                        borderRadius: '6px',
+                        fontSize: '14px'
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button
+                        onClick={() => updateFailedDeposit(deposit._id)}
+                        style={{
+                          background: '#28a745',
+                          color: 'white',
+                          border: 'none',
+                          padding: '10px 16px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: 'bold',
+                          flex: 1
+                        }}
+                      >
+                        ✅ Update & Reprocess
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingDeposit(null);
+                          setTxHash('');
+                          setRealAmount('');
+                        }}
+                        style={{
+                          background: '#6c757d',
+                          color: 'white',
+                          border: 'none',
+                          padding: '10px 16px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '14px'
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Deposit History */}
       <div style={{ background: 'white', padding: '20px', borderRadius: '10px', border: '1px solid #dee2e6' }}>
         <h4 style={{ color: '#333', marginBottom: '15px' }}>Recent Deposits</h4>
-        {depositHistory.length > 0 ? (
+        {depositHistory && depositHistory.length > 0 ? (
           <div style={{ display: 'grid', gap: '10px' }}>
             {depositHistory.slice(0, 5).map((deposit, index) => (
-              <div key={index} style={{
+              <div key={deposit._id || index} style={{
                 background: '#f8f9fa',
                 padding: '15px',
                 borderRadius: '8px',
@@ -209,10 +363,10 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
               }}>
                 <div>
                   <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>
-                    ${deposit.amount.toFixed(2)} USDC
+                    ${deposit.amount ? deposit.amount.toFixed(2) : '0.00'} USDC
                   </p>
                   <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>
-                    {new Date(deposit.createdAt).toLocaleString()}
+                    {deposit.createdAt ? new Date(deposit.createdAt).toLocaleString() : 'Unknown date'}
                   </p>
                 </div>
                 <div style={{ textAlign: 'right' }}>

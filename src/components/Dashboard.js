@@ -10,13 +10,19 @@ import NewInvestmentEarnings from './NewInvestmentEarnings';
 import DepositSection from './DepositSection';
 import AdminPanel from './AdminPanel';
 import AdminWithdrawals from './AdminWithdrawals';
+import AdminDashboard from './AdminDashboard';
+import UserManagement from './UserManagement';
+import DepositManagement from './DepositManagement';
+import SystemAnalytics from './SystemAnalytics';
+import BlockedUser from './BlockedUser';
 import { API_URL } from '../utils/api';
 
 const Dashboard = ({ user, setUser }) => {
   const [dashboardData, setDashboardData] = useState(null);
   const [investmentTiers, setInvestmentTiers] = useState([]);
   const [referrals, setReferrals] = useState([]);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [referralTree, setReferralTree] = useState(null);
+  const [activeTab, setActiveTab] = useState(user?.isAdmin ? 'admin' : 'dashboard');
   const [showInvitationModal, setShowInvitationModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [generatedCode, setGeneratedCode] = useState('');
@@ -62,10 +68,16 @@ const Dashboard = ({ user, setUser }) => {
     try {
       setLoading(prev => ({ ...prev, referrals: true }));
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/user/referrals`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setReferrals(response.data.referrals);
+      const [referralsResponse, treeResponse] = await Promise.all([
+        axios.get(`${API_URL}/user/referrals`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${API_URL}/user/referral-tree`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+      setReferrals(referralsResponse.data.referrals);
+      setReferralTree(treeResponse.data);
     } catch (error) {
       console.error('Failed to fetch referrals');
     } finally {
@@ -116,23 +128,7 @@ const Dashboard = ({ user, setUser }) => {
   useEffect(() => {
     if (user) {
       fetchDashboard();
-
-      // Auto-refresh referrals every 5 seconds
-      const interval = setInterval(() => {
-        fetchReferrals();
-      }, 5000);
-
-      // Refresh when window becomes active
-      const handleFocus = () => {
-        fetchReferrals();
-      };
-
-      window.addEventListener('focus', handleFocus);
-
-      return () => {
-        clearInterval(interval);
-        window.removeEventListener('focus', handleFocus);
-      };
+      fetchReferrals(); // Initial fetch
     }
   }, [user]);
 
@@ -142,11 +138,13 @@ const Dashboard = ({ user, setUser }) => {
       if (activeTab === 'tiers') {
         fetchInvestmentTiers();
       }
-      if (activeTab === 'referrals') {
-        fetchReferrals();
-      }
     }
   }, [activeTab, user]);
+
+  // Check if user is blocked
+  if (user?.isBlocked) {
+    return <BlockedUser onLogout={handleLogout} />;
+  }
 
   return (
     <div style={{ minHeight: '100vh', position: 'relative' }}>
@@ -201,16 +199,17 @@ const Dashboard = ({ user, setUser }) => {
         </div>
       )}
 
-      <div style={{ padding: '20px' }}>
+      <div className="mobile-padding" style={{ padding: '20px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <h2 style={{ textAlign: 'center', color: 'white', marginBottom: '30px', fontSize: '28px' }}>Investment Dashboard</h2>
 
           <div style={{ background: 'rgba(255, 255, 255, 0.95)', borderRadius: '20px', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', borderBottom: '1px solid #e1e5e9' }}>
-              {['dashboard', 'deposit', 'tiers', 'investments', 'referrals', ...(user?.isAdmin ? ['admin', 'withdrawals'] : [])].map(tab => (
+            <div className="dashboard-nav-tabs admin-tabs" style={{ display: 'flex', borderBottom: '1px solid #e1e5e9' }}>
+              {(user?.isAdmin ? ['admin', 'analytics', 'users', 'deposits', 'withdrawals', 'referrals'] : ['dashboard', 'deposit', 'tiers', 'investments', 'referrals']).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
+                  className="dashboard-tab-button admin-tab-button"
                   style={{
                     flex: 1,
                     padding: '15px 20px',
@@ -229,34 +228,34 @@ const Dashboard = ({ user, setUser }) => {
             </div>
 
             <div style={{ padding: '30px' }}>
-              {activeTab === 'dashboard' && (
+              {activeTab === 'dashboard' && !user?.isAdmin && (
                 loading.dashboard ? (
                   <div style={{ textAlign: 'center', padding: '40px' }}>
                     <div style={{ fontSize: '18px', color: '#666' }}>Loading dashboard...</div>
                   </div>
                 ) : dashboardData ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-                  <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
-                    <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>USDC Balance</h3>
-                    <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745', margin: 0 }}>${dashboardData.accountSummary.balance.toFixed(4) || 0}</p>
+                  <div className="grid-responsive">
+                    <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
+                      <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>USDC Balance</h3>
+                      <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745', margin: 0 }}>${dashboardData.accountSummary.balance.toFixed(4) || 0}</p>
+                    </div>
+                    <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
+                      <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Total Investment</h3>
+                      <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#667eea', margin: 0 }}>${dashboardData.accountSummary.totalInvestment.toFixed(4)}</p>
+                    </div>
+                    <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
+                      <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Total Earnings</h3>
+                      <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745', margin: 0 }}>${dashboardData.accountSummary.totalEarnings.toFixed(4)}</p>
+                    </div>
+                    <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
+                      <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Withdrawable Balance</h3>
+                      <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffc107', margin: 0 }}>${dashboardData.accountSummary.withdrawableBalance.toFixed(4)}</p>
+                    </div>
+                    <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
+                      <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Referral Rewards</h3>
+                      <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#17a2b8', margin: 0 }}>${dashboardData.accountSummary.referralRewards.toFixed(2)}</p>
+                    </div>
                   </div>
-                  <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
-                    <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Total Investment</h3>
-                    <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#667eea', margin: 0 }}>${dashboardData.accountSummary.totalInvestment.toFixed(4)}</p>
-                  </div>
-                  <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
-                    <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Total Earnings</h3>
-                    <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745', margin: 0 }}>${dashboardData.accountSummary.totalEarnings.toFixed(4)}</p>
-                  </div>
-                  <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
-                    <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Withdrawable Balance</h3>
-                    <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffc107', margin: 0 }}>${dashboardData.accountSummary.withdrawableBalance.toFixed(4)}</p>
-                  </div>
-                  <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
-                    <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Referral Rewards</h3>
-                    <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#17a2b8', margin: 0 }}>${dashboardData.accountSummary.referralRewards.toFixed(2)}</p>
-                  </div>
-                </div>
                 ) : null
               )}
 
@@ -266,38 +265,38 @@ const Dashboard = ({ user, setUser }) => {
                     <div style={{ fontSize: '18px', color: '#666' }}>Loading investment tiers...</div>
                   </div>
                 ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
-                  {investmentTiers.map((tier, index) => (
-                    <div key={index} style={{
-                      background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                      padding: '25px',
-                      borderRadius: '15px',
-                      border: '2px solid #e1e5e9',
-                      textAlign: 'center',
-                      transition: 'transform 0.2s, box-shadow 0.2s'
-                    }}>
-                      <h4 style={{ color: '#333', margin: '0 0 10px 0', fontSize: '18px' }}>{tier.tier}</h4>
-                      <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#667eea', margin: '10px 0' }}>${tier.amount.toLocaleString()}</p>
-                      <p style={{ color: '#28a745', fontWeight: 'bold', margin: '10px 0' }}>{tier.dailyRate}% Daily</p>
-                      <button
-                        onClick={() => handleInvestment(tier.amount)}
-                        style={{
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                          color: 'white',
-                          border: 'none',
-                          padding: '12px 24px',
-                          borderRadius: '25px',
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          fontWeight: 'bold',
-                          marginTop: '10px'
-                        }}
-                      >
-                        Invest Now
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                  <div className="investment-tiers">
+                    {investmentTiers.map((tier, index) => (
+                      <div key={index} style={{
+                        background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+                        padding: '25px',
+                        borderRadius: '15px',
+                        border: '2px solid #e1e5e9',
+                        textAlign: 'center',
+                        transition: 'transform 0.2s, box-shadow 0.2s'
+                      }}>
+                        <h4 style={{ color: '#333', margin: '0 0 10px 0', fontSize: '18px' }}>{tier.tier}</h4>
+                        <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#667eea', margin: '10px 0' }}>${tier.amount.toLocaleString()}</p>
+                        <p style={{ color: '#28a745', fontWeight: 'bold', margin: '10px 0' }}>{tier.dailyRate}% Daily</p>
+                        <button
+                          onClick={() => handleInvestment(tier.amount)}
+                          style={{
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            color: 'white',
+                            border: 'none',
+                            padding: '12px 24px',
+                            borderRadius: '25px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 'bold',
+                            marginTop: '10px'
+                          }}
+                        >
+                          Invest Now
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )
               )}
 
@@ -317,7 +316,19 @@ const Dashboard = ({ user, setUser }) => {
               )}
 
               {activeTab === 'admin' && (
-                <AdminPanel />
+                <AdminDashboard />
+              )}
+
+              {activeTab === 'analytics' && (
+                <SystemAnalytics />
+              )}
+
+              {activeTab === 'users' && (
+                <UserManagement />
+              )}
+
+              {activeTab === 'deposits' && (
+                <DepositManagement />
               )}
 
               {activeTab === 'withdrawals' && user?.isAdmin && (
@@ -330,55 +341,94 @@ const Dashboard = ({ user, setUser }) => {
                     <div style={{ fontSize: '18px', color: '#666' }}>Loading referrals...</div>
                   </div>
                 ) : (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h3 style={{ color: '#333', margin: 0 }}>My Referrals ({referrals?.length || 0})</h3>
-                    <button
-                      onClick={fetchReferrals}
-                      style={{
-                        background: '#667eea',
-                        color: 'white',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: '20px',
-                        cursor: 'pointer',
-                        fontSize: '14px'
-                      }}
-                    >
-                      🔄 Refresh
-                    </button>
-                  </div>
-                  {referrals && referrals.length > 0 ? (
-                    <div style={{ display: 'grid', gap: '15px' }}>
-                      {referrals.filter(referral => referral && referral.firstName).map((referral, index) => (
-                        <div key={index} style={{
-                          background: '#f8f9fa',
-                          padding: '20px',
-                          borderRadius: '10px',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
-                        }}>
-                          <div>
-                            <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>
-                              {referral.firstName || 'N/A'} {referral.lastName || ''}
-                            </p>
-                            <p style={{ margin: '0 0 5px 0', color: '#666' }}>
-                              {referral.email || 'No email'}
-                            </p>
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>
-                              Joined: {referral.createdAt ? new Date(referral.createdAt).toLocaleDateString() : 'Unknown'}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                  <div>
+                    <div className="referral-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                      <h3 style={{ color: '#333', margin: 0 }}>Referral Network ({referralTree?.totalReferrals || 0})</h3>
+                      <button
+                        onClick={fetchReferrals}
+                        style={{
+                          background: '#667eea',
+                          color: 'white',
+                          border: 'none',
+                          padding: '8px 16px',
+                          borderRadius: '20px',
+                          cursor: 'pointer',
+                          fontSize: '14px'
+                        }}
+                      >
+                        🔄 Refresh
+                      </button>
                     </div>
-                  ) : (
-                    <p style={{ textAlign: 'center', color: '#666', margin: 0 }}>No referrals yet</p>
-                  )}
-                </div>
+                    {referralTree ? (
+                      <div style={{ display: 'grid', gap: '20px' }}>
+                        {referralTree.level1.length > 0 && (
+                          <div style={{ background: '#e8f5e8', padding: '20px', borderRadius: '10px' }}>
+                            <h4 style={{ color: '#155724', margin: '0 0 15px 0' }}>Level 1 - Direct Referrals (10% rewards) - {referralTree.level1.length}</h4>
+                            <div style={{ display: 'grid', gap: '10px' }}>
+                              {referralTree.level1.map((user, index) => (
+                                <div key={index} className="referral-user-box" style={{ background: 'white', padding: '15px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                                  <div className="referral-user-info">
+                                    <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>{user.firstName} {user.lastName}</p>
+                                    <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>{user.email}</p>
+                                  </div>
+                                  <div style={{ fontSize: '12px', color: '#666' }}>
+                                    {new Date(user.createdAt).toLocaleDateString()}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {referralTree.level2.length > 0 && (
+                          <div style={{ background: '#fff3cd', padding: '20px', borderRadius: '10px' }}>
+                            <h4 style={{ color: '#856404', margin: '0 0 15px 0' }}>Level 2 - Indirect Referrals (3% rewards) - {referralTree.level2.length}</h4>
+                            <div style={{ display: 'grid', gap: '10px' }}>
+                              {referralTree.level2.map((user, index) => (
+                                <div key={index} style={{ background: 'white', padding: '15px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                                  <div>
+                                    <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>{user.firstName} {user.lastName}</p>
+                                    <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>{user.email}</p>
+                                  </div>
+                                  <div style={{ fontSize: '12px', color: '#666' }}>
+                                    {new Date(user.createdAt).toLocaleDateString()}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {referralTree.level3.length > 0 && (
+                          <div style={{ background: '#f8d7da', padding: '20px', borderRadius: '10px' }}>
+                            <h4 style={{ color: '#721c24', margin: '0 0 15px 0' }}>Level 3 - Deep Referrals (1% rewards) - {referralTree.level3.length}</h4>
+                            <div style={{ display: 'grid', gap: '10px' }}>
+                              {referralTree.level3.map((user, index) => (
+                                <div key={index} style={{ background: 'white', padding: '15px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                                  <div>
+                                    <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>{user.firstName} {user.lastName}</p>
+                                    <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>{user.email}</p>
+                                  </div>
+                                  <div style={{ fontSize: '12px', color: '#666' }}>
+                                    {new Date(user.createdAt).toLocaleDateString()}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {referralTree.totalReferrals === 0 && (
+                          <div style={{ textAlign: 'center', padding: '40px' }}>
+                            <div style={{ fontSize: '48px', marginBottom: '20px' }}>👥</div>
+                            <h4 style={{ color: '#333', marginBottom: '10px' }}>No Referrals Yet</h4>
+                            <p style={{ color: '#666', margin: 0 }}>Share your invitation code to start building your referral network and earning rewards!</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '40px' }}>
+                        <div style={{ fontSize: '18px', color: '#666' }}>Loading referral tree...</div>
+                      </div>
+                    )}
+                  </div>
                 )
               )}
 

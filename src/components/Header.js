@@ -55,17 +55,16 @@ const Header = ({ user, onLogout, onGenerateInvitation, onProfileClick }) => {
                 color: 'white',
                 border: '1px solid rgba(255, 255, 255, 0.3)',
                 padding: '8px 12px',
-                borderRadius: '50%',
+                borderRadius: '25px',
                 cursor: 'pointer',
-                fontSize: '16px',
-                width: '40px',
-                height: '40px',
+                fontSize: '14px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                gap: '8px'
               }}
             >
-              👤
+              <span style={{ fontSize: '16px' }}>👤</span>
+              <span>{user.firstName} {user.lastName}</span>
             </button>
             {showProfileDropdown && (
               <div style={{

@@ -14,6 +14,23 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Global axios interceptor for blocked users
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 403 && error.response?.data?.error?.includes('blocked')) {
+          setUser({ isBlocked: true, firstName: 'Blocked', lastName: 'User' });
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, []);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -23,8 +40,13 @@ function App() {
         .then(response => {
           setUser(response.data.user);
         })
-        .catch(() => {
-          localStorage.removeItem('token');
+        .catch((error) => {
+          if (error.response?.status === 403 && error.response?.data?.error?.includes('blocked')) {
+            // User is blocked, create blocked user object
+            setUser({ isBlocked: true, firstName: 'Blocked', lastName: 'User' });
+          } else {
+            localStorage.removeItem('token');
+          }
         })
         .finally(() => {
           setLoading(false);
