@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { API_URL } from '../utils/api';
+import '../styles/responsive.css';
 
 const AdminWithdrawals = () => {
   const [withdrawals, setWithdrawals] = useState([]);
@@ -108,7 +109,7 @@ const AdminWithdrawals = () => {
             </button>
           ))}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="withdrawal-management-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ color: '#333', margin: 0 }}>
             {activeTab === 'pending' ? 'Pending Withdrawals' : 'Withdrawal History'}
           </h3>
@@ -138,9 +139,9 @@ const AdminWithdrawals = () => {
               borderRadius: '10px',
               border: `2px solid ${getStatusColor(withdrawal.status)}`
             }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div className="withdrawal-box" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 {/* User Info */}
-                <div>
+                <div className="withdrawal-user-info">
                   <h4 style={{ color: '#333', marginBottom: '10px' }}>User Information</h4>
                   <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>
                     {withdrawal.userId.firstName} {withdrawal.userId.lastName}
@@ -162,7 +163,7 @@ const AdminWithdrawals = () => {
                 </div>
 
                 {/* Withdrawal Info */}
-                <div>
+                <div className="withdrawal-amount-info">
                   <h4 style={{ color: '#333', marginBottom: '10px' }}>Withdrawal Details</h4>
                   <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#28a745', fontSize: '18px' }}>
                     ${withdrawal.amount.toFixed(2)} USDC

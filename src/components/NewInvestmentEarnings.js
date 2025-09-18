@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { API_URL } from '../utils/api';
+import '../styles/responsive.css';
 
 const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
   const [investments, setInvestments] = useState([]);
@@ -30,6 +31,21 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
       console.log('Fetched withdrawals:', response.data.withdrawals);
     } catch (error) {
       console.error('Failed to fetch withdrawals');
+    }
+  };
+
+  const startEarning = async (investmentId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API_URL}/user/start-earning`, 
+        { investmentId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(response.data.message);
+      fetchInvestments();
+      fetchDashboard();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to start earning');
     }
   };
 
@@ -76,10 +92,25 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
 
     if (diff <= 0) return 'Ready to complete!';
 
-    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-    return `${minutes}m ${seconds}s remaining`;
+    return `${hours}h ${minutes}m ${seconds}s remaining`;
+  };
+
+  const getWaitingTimeRemaining = (availableTime) => {
+    const now = new Date();
+    const available = new Date(availableTime);
+    const diff = available - now;
+
+    if (diff <= 0) return 'Available now!';
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    return `${hours}h ${minutes}m ${seconds}s remaining`;
   };
 
   useEffect(() => {
@@ -106,8 +137,8 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
               borderRadius: '16px', 
               border: '2px solid #e1e5e9' 
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
+              <div className="investment-cycle-box" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div className="investment-cycle-content">
                   <h4 style={{ color: '#333', marginBottom: '8px' }}>{investment.tier}</h4>
                   <p style={{ fontWeight: 'bold', marginBottom: '4px' }}>
                     Amount: ${investment.amount.toLocaleString()}
@@ -120,8 +151,71 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                   </p>
                 </div>
 
-                <div style={{ textAlign: 'right' }}>
-                  {investment.cycleEndTime ? (
+                <div className="investment-cycle-actions" style={{ textAlign: 'right' }}>
+                  {investment.withdrawalApprovedAt && investment.nextCycleAvailableAt && new Date() < new Date(investment.nextCycleAvailableAt) ? (
+                    <div>
+                      <div style={{
+                        padding: '12px',
+                        borderRadius: '8px',
+                        marginBottom: '12px',
+                        background: '#fff3cd',
+                        border: '1px solid #ffeaa7'
+                      }}>
+                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#856404' }}>
+                          Waiting Period (48h)
+                        </p>
+                        <p style={{ fontSize: '12px', color: '#856404' }}>
+                          Next cycle: {getWaitingTimeRemaining(investment.nextCycleAvailableAt)}
+                        </p>
+                      </div>
+                      <button
+                        disabled
+                        style={{
+                          background: '#6c757d',
+                          color: 'white',
+                          border: 'none',
+                          padding: '8px 20px',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          cursor: 'not-allowed'
+                        }}
+                      >
+                        ⏳ Waiting Period
+                      </button>
+                    </div>
+                  ) : !investment.earningStarted || (investment.withdrawalApprovedAt && new Date() >= new Date(investment.nextCycleAvailableAt)) ? (
+                    <div>
+                      <div style={{
+                        padding: '12px',
+                        borderRadius: '8px',
+                        marginBottom: '12px',
+                        background: '#e7f3ff',
+                        border: '1px solid #b3d9ff'
+                      }}>
+                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#0066cc' }}>
+                          Ready to Start Earning
+                        </p>
+                        <p style={{ fontSize: '12px', color: '#0066cc' }}>
+                          {investment.withdrawalApprovedAt ? 'New cycle available!' : '1-minute earning cycle'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => startEarning(investment._id)}
+                        style={{
+                          background: '#007bff',
+                          color: 'white',
+                          border: 'none',
+                          padding: '8px 20px',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🚀 Start Earning
+                      </button>
+                    </div>
+                  ) : investment.cycleEndTime && !investment.earningCompleted ? (
                     <div>
                       <div style={{
                         padding: '12px',
@@ -131,7 +225,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                         border: '1px solid #ffeaa7'
                       }}>
                         <p style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '4px' }}>
-                          Cycle Running
+                          Earning in Progress
                         </p>
                         <p style={{ fontSize: '12px', marginBottom: '4px' }}>
                           {getTimeRemaining(investment.cycleEndTime)}
@@ -152,7 +246,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                             cursor: 'pointer'
                           }}
                         >
-                          ✅ Complete Cycle
+                          ✅ Complete Earning
                         </button>
                       ) : (
                         <button
@@ -171,7 +265,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                         </button>
                       )}
                     </div>
-                  ) : investment.canWithdraw ? (
+                  ) : investment.canWithdraw && investment.earningCompleted ? (
                     <div>
                       <div style={{
                         padding: '12px',
@@ -230,7 +324,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                       console.log('Investment:', investment._id, 'Withdrawal:', withdrawal?.status);
                       
                       const statusConfig = {
-                        pending: { bg: '#fff3cd', border: '#ffeaa7', color: '#856404', text: 'Pending Admin Approval' },
+                        pending: { bg: '#fff3cd', border: '#ffeaa7', color: '#856404', text: 'Pending Admin Approval (48h)' },
                         approved: { bg: '#d4edda', border: '#c3e6cb', color: '#155724', text: 'Approved - Processing' },
                         rejected: { bg: '#f8d7da', border: '#f5c6cb', color: '#721c24', text: 'Rejected' },
                         completed: { bg: '#d1ecf1', border: '#bee5eb', color: '#0c5460', text: 'Completed' }

@@ -21,6 +21,9 @@ const Signup = ({ setUser }) => {
     verificationCode: "", // ✅ new field for OTP
   });
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+
   const [showPassword, setShowPassword] = useState({
     password: false,
     confirmPassword: false,
@@ -91,6 +94,7 @@ const Signup = ({ setUser }) => {
     if (!formData.email) {
       return toast.error("Please enter email first");
     }
+    setIsSendingCode(true);
     try {
       const response = await axios.post(
         `${API_URL}/send-code`,
@@ -109,6 +113,8 @@ const Signup = ({ setUser }) => {
       } else {
         toast.error("Something went wrong. Please try again later.");
       }
+    } finally {
+      setIsSendingCode(false);
     }
   };
 
@@ -117,6 +123,7 @@ const Signup = ({ setUser }) => {
     e.preventDefault();
     if (!validateForm()) return;
 
+    setIsLoading(true);
     try {
       const submitData = {
         invitationCode: formData.invitationCode,
@@ -152,6 +159,8 @@ const Signup = ({ setUser }) => {
       } else {
         toast.error(errorMessage || "Registration failed");
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -264,22 +273,37 @@ const Signup = ({ setUser }) => {
               <button
                 type="button"
                 onClick={handleSend}
+                disabled={isSendingCode}
                 style={{
                   width: "40%",
                   padding: "15px",
-                  background:
+                  background: isSendingCode ? "#ccc" :
                     "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                   color: "white",
                   border: "none",
                   borderRadius: "12px",
                   fontSize: "18px",
                   fontWeight: "bold",
-                  cursor: "pointer",
+                  cursor: isSendingCode ? "not-allowed" : "pointer",
                   transition: "all 0.3s ease",
                   boxShadow: "0 5px 15px rgba(102, 126, 234, 0.4)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px"
                 }}
               >
-                Send Code
+                {isSendingCode && (
+                  <div style={{
+                    width: "16px",
+                    height: "16px",
+                    border: "2px solid #ffffff",
+                    borderTop: "2px solid transparent",
+                    borderRadius: "50%",
+                    animation: "spin 1s linear infinite"
+                  }} />
+                )}
+                {isSendingCode ? "Sending..." : "Send Otp"}
               </button>
             </div>
 
@@ -429,23 +453,44 @@ const Signup = ({ setUser }) => {
             {/* Submit Button */}
             <button
               type="submit"
+              disabled={isLoading}
               style={{
                 width: "100%",
                 padding: "15px",
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                background: isLoading ? "#ccc" : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                 color: "white",
                 border: "none",
                 borderRadius: "12px",
                 fontSize: "18px",
                 fontWeight: "bold",
-                cursor: "pointer",
+                cursor: isLoading ? "not-allowed" : "pointer",
                 marginTop: "20px",
                 transition: "all 0.3s ease",
                 boxShadow: "0 5px 15px rgba(102, 126, 234, 0.4)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "10px"
               }}
             >
-              Create Account
+              {isLoading && (
+                <div style={{
+                  width: "20px",
+                  height: "20px",
+                  border: "2px solid #ffffff",
+                  borderTop: "2px solid transparent",
+                  borderRadius: "50%",
+                  animation: "spin 1s linear infinite"
+                }} />
+              )}
+              {isLoading ? "Creating Account..." : "Create Account"}
             </button>
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
           </form>
 
           <p style={{ textAlign: "center", marginTop: "25px", color: "#666" }}>
