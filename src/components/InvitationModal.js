@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { toast } from 'react-toastify';
+import '../styles/responsive.css';
 
 const InvitationModal = ({ isOpen, onClose, invitationCode }) => {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
@@ -63,13 +64,13 @@ const InvitationModal = ({ isOpen, onClose, invitationCode }) => {
 
         <h3 style={{ color: '#333', marginBottom: '20px' }}>Invitation Generated!</h3>
 
-        <div style={{
+        <div className="invitation-modal-content" style={{
           display: 'flex',
           gap: '20px',
           marginBottom: '20px',
           alignItems: 'stretch'
         }}>
-          <div style={{
+          <div className="invitation-code-section" style={{
             background: '#f8f9fa',
             padding: '20px',
             borderRadius: '10px',
@@ -108,7 +109,7 @@ const InvitationModal = ({ isOpen, onClose, invitationCode }) => {
           </div>
 
           {qrCodeUrl && (
-            <div style={{
+            <div className="invitation-qr-section" style={{
               background: '#f8f9fa',
               padding: '20px',
               borderRadius: '10px',

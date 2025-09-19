@@ -169,7 +169,7 @@ const AdminWithdrawals = () => {
                     ${withdrawal.amount.toFixed(2)} USDC
                   </p>
                   <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#666' }}>
-                    Investment: {withdrawal.investmentId.tier}
+                    Investment: {withdrawal.investmentId?.tier || 'N/A'}
                   </p>
                   <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#666', wordBreak: 'break-all' }}>
                     Wallet: {withdrawal.walletAddress}
