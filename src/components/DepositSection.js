@@ -100,7 +100,7 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
 
       {/* Deposit Addresses */}
       <div style={{ background: '#f8f9fa', padding: '30px', borderRadius: '15px', textAlign: 'center', marginBottom: '20px' }}>
-        <h4 style={{ color: '#333', marginBottom: '15px' }}>Platform Deposit Addresses</h4>
+        <h4 style={{ color: '#333', marginBottom: '15px' }}>Platform Deposit Address</h4>
         
         {/* MetaMask Address */}
         <div style={{
@@ -139,49 +139,11 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
           </button>
         </div>
 
-        {/* Coinbase Wallet Address */}
-        {user.coinbaseDepositAddress && (
-          <div style={{
-            background: 'white',
-            padding: '20px',
-            borderRadius: '10px',
-            border: '2px solid #0052ff',
-            marginBottom: '20px'
-          }}>
-            <h5 style={{ color: '#0052ff', margin: '0 0 10px 0' }}>🔵 Coinbase Wallet</h5>
-            <p style={{
-              fontSize: '16px',
-              fontFamily: 'monospace',
-              color: '#333',
-              margin: '0 0 15px 0',
-              wordBreak: 'break-all'
-            }}>
-              {user.coinbaseDepositAddress}
-            </p>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(user.coinbaseDepositAddress);
-                toast.success('Coinbase address copied!');
-              }}
-              style={{
-                background: '#0052ff',
-                color: 'white',
-                border: 'none',
-                padding: '10px 20px',
-                borderRadius: '20px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
-            >
-              📋 Copy Coinbase Address
-            </button>
-          </div>
-        )}
+
         <div style={{ textAlign: 'left', background: '#d1ecf1', padding: '15px', borderRadius: '8px', border: '1px solid #bee5eb' }}>
           <h5 style={{ color: '#0c5460', margin: '0 0 10px 0' }}>🔄 How Real Deposits Work:</h5>
           <ul style={{ color: '#0c5460', margin: 0, paddingLeft: '20px', fontSize: '14px' }}>
-            <li><strong>Choose Address</strong>: Use either MetaMask or Coinbase Wallet address above</li>
-            <li><strong>Send USDC</strong> from your wallet (MetaMask, Coinbase Wallet, OKX, etc.)</li>
+            <li><strong>Send USDC</strong> from your wallet (MetaMask, OKX, etc.) to the address above</li>
             <li><strong>Submit Details</strong> using the form below</li>
             <li><strong>Auto-Processing</strong>: System monitors blockchain and credits your balance</li>
             <li><strong>Network</strong>: Use Polygon network for lower fees</li>
