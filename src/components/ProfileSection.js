@@ -8,6 +8,7 @@ const ProfileSection = ({ user, setUser }) => {
   const [formData, setFormData] = useState({
     firstName: user.firstName,
     lastName: user.lastName,
+    email: user.email,
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
@@ -46,6 +47,14 @@ const ProfileSection = ({ user, setUser }) => {
         lastName: formData.lastName
       };
 
+      // Admin can update email
+      if (user.isAdmin && formData.email !== user.email) {
+        const emailResponse = await axios.put(`${API_URL}/user/admin/update-email`, 
+          { newEmail: formData.email },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
+
       if (formData.newPassword) {
         updateData.currentPassword = formData.currentPassword;
         updateData.newPassword = formData.newPassword;
@@ -60,10 +69,16 @@ const ProfileSection = ({ user, setUser }) => {
       setFormData({
         firstName: response.data.user.firstName,
         lastName: response.data.user.lastName,
+        email: formData.email,
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       });
+      
+      // Update user object with new email if admin changed it
+      if (user.isAdmin && formData.email !== user.email) {
+        setUser({ ...response.data.user, email: formData.email });
+      }
       toast.success('Profile updated successfully!');
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to update profile');
@@ -142,12 +157,21 @@ const ProfileSection = ({ user, setUser }) => {
           </div>
 
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', color: '#666' }}>Email (Cannot be changed)</label>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#666' }}>
+              Email {!user.isAdmin && '(Cannot be changed)'}
+              {user.isAdmin && <span style={{ color: '#28a745', fontSize: '12px' }}> (Admin can edit)</span>}
+            </label>
             <input
               type="email"
-              value={user.email}
-              disabled
-              style={{ ...inputStyle, background: '#f5f5f5', color: '#999' }}
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              disabled={!user.isAdmin}
+              style={{
+                ...inputStyle,
+                background: user.isAdmin ? 'white' : '#f5f5f5',
+                color: user.isAdmin ? '#333' : '#999'
+              }}
             />
           </div>
 
@@ -260,6 +284,7 @@ const ProfileSection = ({ user, setUser }) => {
                 setFormData({
                   firstName: user.firstName,
                   lastName: user.lastName,
+                  email: user.email,
                   currentPassword: '',
                   newPassword: '',
                   confirmPassword: ''

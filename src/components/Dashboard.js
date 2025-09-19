@@ -14,6 +14,7 @@ import AdminDashboard from './AdminDashboard';
 import UserManagement from './UserManagement';
 import DepositManagement from './DepositManagement';
 import SystemAnalytics from './SystemAnalytics';
+import AdminSettings from './AdminSettings';
 import BlockedUser from './BlockedUser';
 import { API_URL } from '../utils/api';
 
@@ -205,7 +206,7 @@ const Dashboard = ({ user, setUser }) => {
 
           <div style={{ background: 'rgba(255, 255, 255, 0.95)', borderRadius: '20px', marginBottom: '20px' }}>
             <div className="dashboard-nav-tabs admin-tabs" style={{ display: 'flex', borderBottom: '1px solid #e1e5e9' }}>
-              {(user?.isAdmin ? ['admin', 'analytics', 'users', 'deposits', 'withdrawals', 'referrals'] : ['dashboard', 'deposit', 'tiers', 'investments', 'referrals']).map(tab => (
+              {(user?.isAdmin ? ['admin', 'analytics', 'users', 'deposits', 'withdrawals', 'settings', 'referrals'] : ['dashboard', 'deposit', 'tiers', 'investments', 'referrals']).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -321,6 +322,10 @@ const Dashboard = ({ user, setUser }) => {
 
               {activeTab === 'analytics' && (
                 <SystemAnalytics />
+              )}
+
+              {activeTab === 'settings' && user?.isAdmin && (
+                <AdminSettings user={user} setUser={setUser} />
               )}
 
               {activeTab === 'users' && (
