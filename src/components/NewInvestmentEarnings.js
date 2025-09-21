@@ -196,7 +196,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                           Ready to Start Earning
                         </p>
                         <p style={{ fontSize: '12px', color: '#0066cc' }}>
-                          {investment.withdrawalApprovedAt ? 'New cycle available!' : '8-hour earning cycle'}
+                          {investment.withdrawalApprovedAt ? 'New cycle available!' : '8-hour earning cycle (Mon-Fri only)'}
                         </p>
                       </div>
                       <button
