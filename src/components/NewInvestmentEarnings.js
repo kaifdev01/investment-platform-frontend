@@ -50,6 +50,15 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
   };
 
   const completeCycle = async (investmentId) => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    
+    // Block completing cycles on weekends
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      toast.error('Earnings cannot be completed on weekends. Please wait until Monday.');
+      return;
+    }
+    
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(`${API_URL}/user/complete-cycle`, 
@@ -232,7 +241,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                         </p>
                       </div>
 
-                      {new Date() >= new Date(investment.cycleEndTime) ? (
+                      {new Date() >= new Date(investment.cycleEndTime) && new Date().getDay() !== 0 && new Date().getDay() !== 6 ? (
                         <button
                           onClick={() => completeCycle(investment._id)}
                           style={{
