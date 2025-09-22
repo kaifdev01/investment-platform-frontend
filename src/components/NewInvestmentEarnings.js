@@ -175,7 +175,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                         border: '1px solid #ffeaa7'
                       }}>
                         <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#856404' }}>
-                          Waiting Period (1min)
+                          Waiting Period (48h)
                         </p>
                         <p style={{ fontSize: '12px', color: '#856404' }}>
                           Next cycle: {getWaitingTimeRemaining(investment.nextCycleAvailableAt)}
@@ -209,7 +209,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                           Ready to Start Earning
                         </p>
                         <p style={{ fontSize: '12px', color: '#0066cc' }}>
-                          {investment.withdrawalApprovedAt ? 'New cycle available!' : '1-minute earning cycle (Mon-Fri only)'}
+                          {investment.withdrawalApprovedAt ? 'New cycle available!' : '8-hour earning cycle (Mon-Fri only)'}
                         </p>
                       </div>
                       <button
