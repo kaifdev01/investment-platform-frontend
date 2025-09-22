@@ -91,10 +91,10 @@ const AdminDashboard = () => {
                 }}>
                   <div>
                     <p style={{ margin: '0 0 2px 0', fontSize: '14px', fontWeight: 'bold' }}>
-                      {deposit.userId.firstName} {deposit.userId.lastName}
+                      {deposit.userId?.firstName || 'N/A'} {deposit.userId?.lastName || ''}
                     </p>
                     <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>
-                      {deposit.userId.email}
+                      {deposit.userId?.email || 'N/A'}
                     </p>
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -129,10 +129,10 @@ const AdminDashboard = () => {
                 }}>
                   <div>
                     <p style={{ margin: '0 0 2px 0', fontSize: '14px', fontWeight: 'bold' }}>
-                      {withdrawal.userId.firstName} {withdrawal.userId.lastName}
+                      {withdrawal.userId?.firstName || 'N/A'} {withdrawal.userId?.lastName || ''}
                     </p>
                     <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>
-                      {withdrawal.userId.email}
+                      {withdrawal.userId?.email || 'N/A'}
                     </p>
                   </div>
                   <div style={{ textAlign: 'right' }}>
