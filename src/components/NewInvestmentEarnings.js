@@ -68,6 +68,10 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
       toast.success(response.data.message);
       fetchInvestments();
       fetchDashboard();
+      // Force dashboard refresh after delay
+      setTimeout(() => {
+        fetchDashboard();
+      }, 1000);
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to complete cycle');
     }
@@ -171,7 +175,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                         border: '1px solid #ffeaa7'
                       }}>
                         <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#856404' }}>
-                          Waiting Period (48h)
+                          Waiting Period (1min)
                         </p>
                         <p style={{ fontSize: '12px', color: '#856404' }}>
                           Next cycle: {getWaitingTimeRemaining(investment.nextCycleAvailableAt)}
@@ -205,7 +209,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                           Ready to Start Earning
                         </p>
                         <p style={{ fontSize: '12px', color: '#0066cc' }}>
-                          {investment.withdrawalApprovedAt ? 'New cycle available!' : '8-hour earning cycle (Mon-Fri only)'}
+                          {investment.withdrawalApprovedAt ? 'New cycle available!' : '1-minute earning cycle (Mon-Fri only)'}
                         </p>
                       </div>
                       <button
@@ -286,8 +290,14 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                         <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#155724' }}>
                           Ready for Withdrawal
                         </p>
+                        <p style={{ fontSize: '12px', color: '#666' }}>
+                          Gross: ${investment.totalEarned.toFixed(2)}
+                        </p>
+                        <p style={{ fontSize: '12px', color: '#dc3545' }}>
+                          Fee (15%): ${(investment.totalEarned * 0.15).toFixed(2)}
+                        </p>
                         <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#28a745' }}>
-                          ${investment.totalEarned.toFixed(2)}
+                          Net: ${(investment.totalEarned * 0.85).toFixed(2)}
                         </p>
                       </div>
 
@@ -396,7 +406,10 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
               }}>
                 <div>
                   <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>
-                    ${withdrawal.amount.toFixed(2)}
+                    Net: ${(withdrawal.netAmount || withdrawal.amount * 0.85).toFixed(2)}
+                  </p>
+                  <p style={{ margin: '0 0 2px 0', fontSize: '10px', color: '#666' }}>
+                    Gross: ${withdrawal.amount.toFixed(2)} | Fee: ${(withdrawal.feeAmount || withdrawal.amount * 0.15).toFixed(2)}
                   </p>
                   <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>
                     {new Date(withdrawal.requestedAt).toLocaleString()}
