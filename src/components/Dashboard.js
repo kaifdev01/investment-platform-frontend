@@ -101,6 +101,15 @@ const Dashboard = ({ user, setUser }) => {
   };
 
   const handleInvestment = async (amount) => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    
+    // Block investments on weekends
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      toast.error('Investments are only available Monday through Friday. Please try again on a weekday.');
+      return;
+    }
+    
     try {
       const token = localStorage.getItem('token');
       await axios.post(`${API_URL}/user/invest`, { amount }, {
