@@ -144,10 +144,10 @@ const AdminWithdrawals = () => {
                 <div className="withdrawal-user-info">
                   <h4 style={{ color: '#333', marginBottom: '10px' }}>User Information</h4>
                   <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>
-                    {withdrawal.userId.firstName} {withdrawal.userId.lastName}
+                    {withdrawal.userId?.firstName || 'N/A'} {withdrawal.userId?.lastName || ''}
                   </p>
                   <p style={{ margin: '0 0 5px 0', color: '#666' }}>
-                    {withdrawal.userId.email}
+                    {withdrawal.userId?.email || 'N/A'}
                   </p>
                   <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>
                     Requested: {new Date(withdrawal.requestedAt).toLocaleString()}
@@ -166,8 +166,18 @@ const AdminWithdrawals = () => {
                 <div className="withdrawal-amount-info">
                   <h4 style={{ color: '#333', marginBottom: '10px' }}>Withdrawal Details</h4>
                   <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#28a745', fontSize: '18px' }}>
-                    ${withdrawal.amount.toFixed(2)} USDC
+                    Gross: ${withdrawal.amount.toFixed(2)} USDC
                   </p>
+                  {withdrawal.feeAmount && (
+                    <>
+                      <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#dc3545' }}>
+                        Fee (15%): ${withdrawal.feeAmount.toFixed(2)} USDC
+                      </p>
+                      <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#007bff', fontSize: '16px' }}>
+                        Net Amount: ${withdrawal.netAmount.toFixed(2)} USDC
+                      </p>
+                    </>
+                  )}
                   <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#666' }}>
                     Investment: {withdrawal.investmentId?.tier || 'N/A'}
                   </p>

@@ -262,6 +262,10 @@ const Dashboard = ({ user, setUser }) => {
                       <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffc107', margin: 0 }}>${dashboardData.accountSummary.withdrawableBalance.toFixed(4)}</p>
                     </div>
                     <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
+                      <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Balance Withdrawn</h3>
+                      <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#6f42c1', margin: 0 }}>${dashboardData.accountSummary.balanceWithdrawn.toFixed(4)}</p>
+                    </div>
+                    <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
                       <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Referral Rewards</h3>
                       <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#17a2b8', margin: 0 }}>${dashboardData.accountSummary.referralRewards.toFixed(2)}</p>
                     </div>
