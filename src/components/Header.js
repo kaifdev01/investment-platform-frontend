@@ -13,24 +13,24 @@ const Header = ({ user, onLogout, onGenerateInvitation, onProfileClick }) => {
       borderBottom: '1px solid rgba(255, 255, 255, 0.2)'
     }}>
       <div>
-        <h1 style={{ 
-          color: 'white', 
-          margin: 0, 
+        <h1 style={{
+          color: 'white',
+          margin: 0,
           fontSize: '24px',
           fontWeight: 'bold'
         }}>
-          HRP Farm
+          HPR Farm
         </h1>
-        <p style={{ 
-          color: 'rgba(255, 255, 255, 0.8)', 
-          margin: 0, 
+        <p style={{
+          color: 'rgba(255, 255, 255, 0.8)',
+          margin: 0,
           fontSize: '12px',
           fontStyle: 'italic'
         }}>
           Investment Platform
         </p>
       </div>
-      
+
       {user && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <button

@@ -37,7 +37,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
   const startEarning = async (investmentId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`${API_URL}/user/start-earning`, 
+      const response = await axios.post(`${API_URL}/user/start-earning`,
         { investmentId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -52,16 +52,16 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
   const completeCycle = async (investmentId) => {
     const now = new Date();
     const dayOfWeek = now.getDay();
-    
+
     // Block completing cycles on weekends
     if (dayOfWeek === 0 || dayOfWeek === 6) {
       toast.error('Earnings cannot be completed on weekends. Please wait until Monday.');
       return;
     }
-    
+
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`${API_URL}/user/complete-cycle`, 
+      const response = await axios.post(`${API_URL}/user/complete-cycle`,
         { investmentId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -85,7 +85,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`${API_URL}/withdrawal/request`, 
+      await axios.post(`${API_URL}/withdrawal/request`,
         { investmentId, walletAddress },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -144,11 +144,11 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
       {investments.length > 0 ? (
         <div style={{ display: 'grid', gap: '20px', marginBottom: '30px' }}>
           {investments.map((investment, index) => (
-            <div key={index} style={{ 
-              background: '#f8f9fa', 
-              padding: '24px', 
-              borderRadius: '16px', 
-              border: '2px solid #e1e5e9' 
+            <div key={index} style={{
+              background: '#f8f9fa',
+              padding: '24px',
+              borderRadius: '16px',
+              border: '2px solid #e1e5e9'
             }}>
               <div className="investment-cycle-box" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div className="investment-cycle-content">
@@ -162,6 +162,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                   <p style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>
                     Total Earned: ${(investment.totalEarned || 0).toFixed(2)}
                   </p>
+                  <p style={{ fontSize: '14px', color: 'red', marginBottom: '4px' }}>Withdrawal Time is 48 Hour.</p>
                 </div>
 
                 <div className="investment-cycle-actions" style={{ textAlign: 'right' }}>
@@ -315,7 +316,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                           fontSize: '12px'
                         }}
                       />
-                      
+
                       <button
                         onClick={() => requestWithdrawal(investment._id)}
                         style={{
@@ -341,16 +342,16 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                       });
                       const status = withdrawal?.status || 'pending';
                       console.log('Investment:', investment._id, 'Withdrawal:', withdrawal?.status);
-                      
+
                       const statusConfig = {
-                        pending: { bg: '#fff3cd', border: '#ffeaa7', color: '#856404', text: 'Pending Admin Approval (48h)' },
+                        pending: { bg: '#fff3cd', border: '#ffeaa7', color: '#856404', text: 'Pending withdrawal time: 48h' },
                         approved: { bg: '#d4edda', border: '#c3e6cb', color: '#155724', text: 'Approved - Processing' },
                         rejected: { bg: '#f8d7da', border: '#f5c6cb', color: '#721c24', text: 'Rejected' },
                         completed: { bg: '#d1ecf1', border: '#bee5eb', color: '#0c5460', text: 'Completed' }
                       };
-                      
+
                       const config = statusConfig[status];
-                      
+
                       return (
                         <div style={{
                           padding: '12px',
@@ -361,6 +362,11 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                           <p style={{ fontSize: '14px', fontWeight: 'bold', color: config.color, margin: 0 }}>
                             {config.text}
                           </p>
+                          {status === 'pending' && (
+                            <p style={{ fontSize: '12px', color: config.color, margin: '4px 0 0 0' }}>
+                              Admin has 48 hours to process
+                            </p>
+                          )}
                           {withdrawal?.txHash && (
                             <p style={{ fontSize: '10px', color: config.color, margin: '4px 0 0 0', wordBreak: 'break-all' }}>
                               TX: {withdrawal.txHash.substring(0, 20)}...
@@ -379,6 +385,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                       <p style={{ fontSize: '14px', color: '#6c757d' }}>
                         Cycle Completed
                       </p>
+
                     </div>
                   )}
                 </div>
@@ -416,8 +423,8 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                   </p>
                 </div>
                 <span style={{
-                  background: withdrawal.status === 'approved' ? '#28a745' : 
-                             withdrawal.status === 'pending' ? '#ffc107' : '#dc3545',
+                  background: withdrawal.status === 'approved' ? '#28a745' :
+                    withdrawal.status === 'pending' ? '#ffc107' : '#dc3545',
                   color: 'white',
                   padding: '4px 8px',
                   borderRadius: '12px',

@@ -5,6 +5,8 @@ import { API_URL } from '../utils/api';
 
 const InvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
   const [activeCycles, setActiveCycles] = useState([]);
+  const [walletAddress, setWalletAddress] = useState('');
+  const [showWithdrawalBox, setShowWithdrawalBox] = useState({});
 
   const fetchActiveCycles = async () => {
     try {
@@ -41,10 +43,52 @@ const InvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success(`Claimed $${response.data.earning} reward!`);
+      
+      // Show withdrawal box for this investment
+      const cycle = activeCycles.find(c => c._id === cycleId);
+      console.log('Found cycle:', cycle);
+      console.log('Response data:', response.data);
+      if (cycle && cycle.investmentId) {
+        console.log('Setting withdrawal box for investment:', cycle.investmentId._id);
+        setShowWithdrawalBox(prev => {
+          const newState = {
+            ...prev,
+            [cycle.investmentId._id]: {
+              show: true,
+              earning: response.data.earning,
+              totalEarned: response.data.totalEarned || response.data.earning
+            }
+          };
+          console.log('New withdrawal box state:', newState);
+          return newState;
+        });
+      }
+      
       fetchActiveCycles();
       fetchDashboard();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to claim reward');
+    }
+  };
+
+  const requestWithdrawal = async (investmentId) => {
+    if (!walletAddress) {
+      toast.error('Please enter your wallet address');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_URL}/withdrawal/request`, 
+        { investmentId, walletAddress },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Withdrawal requested! Admin approval required.');
+      setWalletAddress('');
+      setShowWithdrawalBox(prev => ({ ...prev, [investmentId]: { show: false } }));
+      fetchDashboard();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to request withdrawal');
     }
   };
 
@@ -162,6 +206,64 @@ const InvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                           </button>
                         )}
                       </div>
+                    ) : (() => {
+                      console.log(`Investment ${investment._id}: showWithdrawalBox =`, showWithdrawalBox[investment._id]);
+                      return showWithdrawalBox[investment._id]?.show;
+                    })() ? (
+                      <div>
+                        <div style={{
+                          padding: '12px',
+                          borderRadius: '8px',
+                          marginBottom: '12px',
+                          background: '#d4edda',
+                          border: '1px solid #c3e6cb'
+                        }}>
+                          <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#155724' }}>
+                            Ready for Withdrawal
+                          </p>
+                          <p style={{ fontSize: '12px', color: '#666' }}>
+                            Gross: ${showWithdrawalBox[investment._id].totalEarned.toFixed(2)}
+                          </p>
+                          <p style={{ fontSize: '12px', color: '#dc3545' }}>
+                            Fee (15%): ${(showWithdrawalBox[investment._id].totalEarned * 0.15).toFixed(2)}
+                          </p>
+                          <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#28a745' }}>
+                            Net: ${(showWithdrawalBox[investment._id].totalEarned * 0.85).toFixed(2)}
+                          </p>
+                        </div>
+
+                        <input
+                          type="text"
+                          placeholder="Your wallet address"
+                          value={walletAddress}
+                          onChange={(e) => setWalletAddress(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '8px',
+                            border: '1px solid #ddd',
+                            borderRadius: '4px',
+                            marginBottom: '8px',
+                            fontSize: '12px'
+                          }}
+                        />
+                        
+                        <button
+                          onClick={() => requestWithdrawal(investment._id)}
+                          style={{
+                            background: '#17a2b8',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 20px',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            width: '100%'
+                          }}
+                        >
+                          💰 Request Withdrawal
+                        </button>
+                      </div>
                     ) : (
                       <button
                         onClick={() => startCycle(investment._id)}
@@ -176,7 +278,7 @@ const InvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                           cursor: 'pointer'
                         }}
                       >
-                        🚀 Start 5min Cycle
+                        🚀 Start 1min Cycle
                       </button>
                     )}
                   </div>
