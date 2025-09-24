@@ -278,7 +278,7 @@ const InvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                           cursor: 'pointer'
                         }}
                       >
-                        🚀 Start 1min Cycle
+                        🚀 Start 8h Cycle
                       </button>
                     )}
                   </div>
