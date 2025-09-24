@@ -32,6 +32,7 @@ const Dashboard = ({ user, setUser }) => {
     tiers: false,
     referrals: false
   });
+  const [withdrawalData, setWithdrawalData] = useState({ withdrawals: [], investments: [] });
 
 
   const fetchDashboard = async () => {
@@ -46,6 +47,26 @@ const Dashboard = ({ user, setUser }) => {
       console.error('Failed to fetch dashboard data');
     } finally {
       setLoading(prev => ({ ...prev, dashboard: false }));
+    }
+  };
+
+  const fetchWithdrawalData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const [withdrawalResponse, investmentResponse] = await Promise.all([
+        axios.get(`${API_URL}/withdrawal/my-withdrawals`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${API_URL}/user/dashboard`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+      setWithdrawalData({
+        withdrawals: withdrawalResponse.data.withdrawals || [],
+        investments: investmentResponse.data.activeInvestments || []
+      });
+    } catch (error) {
+      console.error('Failed to fetch withdrawal data');
     }
   };
 
@@ -139,6 +160,7 @@ const Dashboard = ({ user, setUser }) => {
     if (user) {
       fetchDashboard();
       fetchReferrals(); // Initial fetch
+      fetchWithdrawalData();
     }
   }, [user]);
 
@@ -243,33 +265,62 @@ const Dashboard = ({ user, setUser }) => {
                   <div style={{ textAlign: 'center', padding: '40px' }}>
                     <div style={{ fontSize: '18px', color: '#666' }}>Loading dashboard...</div>
                   </div>
-                ) : dashboardData ? (
-                  <div className="grid-responsive">
-                    <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
-                      <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>USDC Balance</h3>
-                      <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745', margin: 0 }}>${dashboardData.accountSummary.balance.toFixed(4) || 0}</p>
-                    </div>
-                    <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
-                      <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Total Investment</h3>
-                      <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#667eea', margin: 0 }}>${dashboardData.accountSummary.totalInvestment.toFixed(4)}</p>
-                    </div>
-                    <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
-                      <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Total Earnings</h3>
-                      <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745', margin: 0 }}>${dashboardData.accountSummary.totalEarnings.toFixed(4)}</p>
-                    </div>
-                    <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
-                      <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Withdrawable Balance</h3>
-                      <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffc107', margin: 0 }}>${dashboardData.accountSummary.withdrawableBalance.toFixed(4)}</p>
-                    </div>
-                    <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
-                      <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Balance Withdrawn</h3>
-                      <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#6f42c1', margin: 0 }}>${dashboardData.accountSummary.balanceWithdrawn.toFixed(4)}</p>
-                    </div>
-                    <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
-                      <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Referral Rewards</h3>
-                      <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#17a2b8', margin: 0 }}>${dashboardData.accountSummary.referralRewards.toFixed(2)}</p>
-                    </div>
-                  </div>
+) : dashboardData ? (
+                  <>
+                  {(() => {
+                    const { withdrawals, investments } = withdrawalData;
+                    
+                    const availableCycles = investments
+                      .filter(inv => inv.cycleEarnings && inv.cycleEarnings.length > 0)
+                      .flatMap(investment => 
+                        investment.cycleEarnings
+                          .filter(cycle => !cycle.withdrawalRequested)
+                          .map(cycle => cycle.grossAmount)
+                      );
+                    
+                    const completedWithdrawals = withdrawals.filter(w => w.status === 'completed' || w.status === 'approved');
+                    const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending');
+                    
+                    const totalAvailable = availableCycles.reduce((sum, amount) => sum + amount, 0);
+                    const totalPending = pendingWithdrawals.reduce((sum, w) => sum + (w.netAmount || w.amount * 0.85), 0);
+                    const totalWithdrawn = completedWithdrawals.reduce((sum, w) => sum + (w.netAmount || w.amount * 0.85), 0);
+                    const totalEarnings = totalAvailable + totalPending + totalWithdrawn;
+                    
+                    return (
+                      <div className="grid-responsive">
+                        <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
+                          <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>USDC Balance</h3>
+                          <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745', margin: 0 }}>${dashboardData.accountSummary.balance.toFixed(4) || 0}</p>
+                        </div>
+                        <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
+                          <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Total Investment</h3>
+                          <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#667eea', margin: 0 }}>${dashboardData.accountSummary.totalInvestment.toFixed(4)}</p>
+                        </div>
+                        <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
+                          <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Total Earnings</h3>
+                          <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#28a745', margin: 0 }}>${totalEarnings.toFixed(2)}</p>
+                        </div>
+                        <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
+                          <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Available to Withdraw</h3>
+                          <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffc107', margin: 0 }}>${(totalAvailable * 0.85).toFixed(2)}</p>
+                        </div>
+                        <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
+                          <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Pending Approval</h3>
+                          <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#fd7e14', margin: 0 }}>${totalPending.toFixed(2)}</p>
+                        </div>
+                        <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
+                          <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Successfully Withdrawn</h3>
+                          <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#6f42c1', margin: 0 }}>${totalWithdrawn.toFixed(2)}</p>
+                        </div>
+                        <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
+                          <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Referral Rewards</h3>
+                          <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#17a2b8', margin: 0 }}>${dashboardData.accountSummary.referralRewards.toFixed(2)}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  </>
                 ) : null
               )}
 
