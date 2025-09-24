@@ -9,6 +9,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
   const [withdrawals, setWithdrawals] = useState([]);
   const [walletAddress, setWalletAddress] = useState('');
 
+
   const fetchInvestments = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -24,13 +25,13 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
   const fetchWithdrawals = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/withdrawal/my-withdrawals`, {
+      const response = await axios.get(`${API_URL}/withdrawal/my-withdrawals?t=${Date.now()}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setWithdrawals(response.data.withdrawals || []);
-      console.log('Fetched withdrawals:', response.data.withdrawals);
+      console.log('Fetched withdrawals at', new Date().toLocaleTimeString(), ':', response.data.withdrawals);
     } catch (error) {
-      console.error('Failed to fetch withdrawals');
+      console.error('Failed to fetch withdrawals:', error);
     }
   };
 
@@ -98,6 +99,8 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
     }
   };
 
+
+
   const getTimeRemaining = (endTime) => {
     const now = new Date();
     const end = new Date(endTime);
@@ -132,7 +135,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
     const interval = setInterval(() => {
       fetchInvestments();
       fetchWithdrawals();
-    }, 5000); // Check every 5 seconds
+    }, 2000); // Check every 2 seconds
     return () => clearInterval(interval);
   }, []);
 
@@ -160,13 +163,15 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                     Daily Rate: {investment.dailyRate}%
                   </p>
                   <p style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>
-                    Total Earned: ${(investment.totalEarned || 0).toFixed(2)}
+                    Total Earned: ${((investment.totalEarned || 0) * 0.85).toFixed(2)} (Net)
                   </p>
-                  <p style={{ fontSize: '14px', color: 'red', marginBottom: '4px' }}>Withdrawal Time is 48 Hour.</p>
+                  <p style={{ fontSize: '14px', color: 'orange', marginBottom: '4px' }}>Withdrawals may take up to 48 hours to process.</p>
                 </div>
 
                 <div className="investment-cycle-actions" style={{ textAlign: 'right' }}>
+                  {/* Show cycle status based on current state */}
                   {investment.withdrawalApprovedAt && investment.nextCycleAvailableAt && new Date() < new Date(investment.nextCycleAvailableAt) ? (
+                    // Waiting period after withdrawal approval
                     <div>
                       <div style={{
                         padding: '12px',
@@ -197,39 +202,8 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                         ⏳ Waiting Period
                       </button>
                     </div>
-                  ) : !investment.earningStarted || (investment.withdrawalApprovedAt && new Date() >= new Date(investment.nextCycleAvailableAt)) ? (
-                    <div>
-                      <div style={{
-                        padding: '12px',
-                        borderRadius: '8px',
-                        marginBottom: '12px',
-                        background: '#e7f3ff',
-                        border: '1px solid #b3d9ff'
-                      }}>
-                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#0066cc' }}>
-                          Ready to Start Earning
-                        </p>
-                        <p style={{ fontSize: '12px', color: '#0066cc' }}>
-                          {investment.withdrawalApprovedAt ? 'New cycle available!' : '8-hour earning cycle (Mon-Fri only)'}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => startEarning(investment._id)}
-                        style={{
-                          background: '#007bff',
-                          color: 'white',
-                          border: 'none',
-                          padding: '8px 20px',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          fontWeight: 'bold',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        🚀 Start Earning
-                      </button>
-                    </div>
-                  ) : investment.cycleEndTime && !investment.earningCompleted ? (
+                  ) : investment.earningStarted && investment.cycleEndTime && !investment.earningCompleted ? (
+                    // Earning cycle in progress
                     <div>
                       <div style={{
                         padding: '12px',
@@ -279,113 +253,39 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                         </button>
                       )}
                     </div>
-                  ) : investment.canWithdraw && investment.earningCompleted ? (
+
+                  ) : (
+                    // Ready to start earning (new or next cycle)
                     <div>
                       <div style={{
                         padding: '12px',
                         borderRadius: '8px',
                         marginBottom: '12px',
-                        background: '#d4edda',
-                        border: '1px solid #c3e6cb'
+                        background: '#e7f3ff',
+                        border: '1px solid #b3d9ff'
                       }}>
-                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#155724' }}>
-                          Ready for Withdrawal
+                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#0066cc' }}>
+                          Ready to Start Earning
                         </p>
-                        <p style={{ fontSize: '12px', color: '#666' }}>
-                          Gross: ${investment.totalEarned.toFixed(2)}
-                        </p>
-                        <p style={{ fontSize: '12px', color: '#dc3545' }}>
-                          Fee (15%): ${(investment.totalEarned * 0.15).toFixed(2)}
-                        </p>
-                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#28a745' }}>
-                          Net: ${(investment.totalEarned * 0.85).toFixed(2)}
+                        <p style={{ fontSize: '12px', color: '#0066cc' }}>
+                          {investment.totalEarned > 0 ? 'Start new 8-hour earning cycle' : '8-hour earning cycle'} (Mon-Fri only)
                         </p>
                       </div>
-
-                      <input
-                        type="text"
-                        placeholder="Your wallet address"
-                        value={walletAddress}
-                        onChange={(e) => setWalletAddress(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '8px',
-                          border: '1px solid #ddd',
-                          borderRadius: '4px',
-                          marginBottom: '8px',
-                          fontSize: '12px'
-                        }}
-                      />
-
                       <button
-                        onClick={() => requestWithdrawal(investment._id)}
+                        onClick={() => startEarning(investment._id)}
                         style={{
-                          background: '#17a2b8',
+                          background: '#007bff',
                           color: 'white',
                           border: 'none',
                           padding: '8px 20px',
                           borderRadius: '8px',
                           fontSize: '14px',
                           fontWeight: 'bold',
-                          cursor: 'pointer',
-                          width: '100%'
+                          cursor: 'pointer'
                         }}
                       >
-                        💰 Request Withdrawal
+                        🚀 Start {investment.totalEarned > 0 ? 'New Cycle' : 'Earning'}
                       </button>
-                    </div>
-                  ) : investment.withdrawalRequestedAt ? (
-                    (() => {
-                      const withdrawal = withdrawals.find(w => {
-                        const wId = w.investmentId?._id || w.investmentId;
-                        return wId?.toString() === investment._id?.toString();
-                      });
-                      const status = withdrawal?.status || 'pending';
-                      console.log('Investment:', investment._id, 'Withdrawal:', withdrawal?.status);
-
-                      const statusConfig = {
-                        pending: { bg: '#fff3cd', border: '#ffeaa7', color: '#856404', text: 'Pending withdrawal time: 48h' },
-                        approved: { bg: '#d4edda', border: '#c3e6cb', color: '#155724', text: 'Approved - Processing' },
-                        rejected: { bg: '#f8d7da', border: '#f5c6cb', color: '#721c24', text: 'Rejected' },
-                        completed: { bg: '#d1ecf1', border: '#bee5eb', color: '#0c5460', text: 'Completed' }
-                      };
-
-                      const config = statusConfig[status];
-
-                      return (
-                        <div style={{
-                          padding: '12px',
-                          borderRadius: '8px',
-                          background: config.bg,
-                          border: `1px solid ${config.border}`
-                        }}>
-                          <p style={{ fontSize: '14px', fontWeight: 'bold', color: config.color, margin: 0 }}>
-                            {config.text}
-                          </p>
-                          {status === 'pending' && (
-                            <p style={{ fontSize: '12px', color: config.color, margin: '4px 0 0 0' }}>
-                              Admin has 48 hours to process
-                            </p>
-                          )}
-                          {withdrawal?.txHash && (
-                            <p style={{ fontSize: '10px', color: config.color, margin: '4px 0 0 0', wordBreak: 'break-all' }}>
-                              TX: {withdrawal.txHash.substring(0, 20)}...
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })()
-                  ) : (
-                    <div style={{
-                      padding: '12px',
-                      borderRadius: '8px',
-                      background: '#e2e3e5',
-                      border: '1px solid #d6d8db'
-                    }}>
-                      <p style={{ fontSize: '14px', color: '#6c757d' }}>
-                        Cycle Completed
-                      </p>
-
                     </div>
                   )}
                 </div>
@@ -397,44 +297,244 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
         <p style={{ textAlign: 'center', color: '#666' }}>No active investments</p>
       )}
 
-      {/* Withdrawal History */}
-      {withdrawals.length > 0 && (
-        <div>
-          <h4 style={{ color: '#333', marginBottom: '15px' }}>Withdrawal History</h4>
-          <div style={{ display: 'grid', gap: '10px' }}>
-            {withdrawals.map((withdrawal, index) => (
-              <div key={index} style={{
-                background: '#f8f9fa',
-                padding: '15px',
-                borderRadius: '8px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div>
-                  <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>
-                    Net: ${(withdrawal.netAmount || withdrawal.amount * 0.85).toFixed(2)}
-                  </p>
-                  <p style={{ margin: '0 0 2px 0', fontSize: '10px', color: '#666' }}>
-                    Gross: ${withdrawal.amount.toFixed(2)} | Fee: ${(withdrawal.feeAmount || withdrawal.amount * 0.15).toFixed(2)}
-                  </p>
-                  <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>
-                    {new Date(withdrawal.requestedAt).toLocaleString()}
-                  </p>
-                </div>
-                <span style={{
-                  background: withdrawal.status === 'approved' ? '#28a745' :
-                    withdrawal.status === 'pending' ? '#ffc107' : '#dc3545',
-                  color: 'white',
-                  padding: '4px 8px',
+      {/* Withdrawal Management Section */}
+      {(investments.some(inv => inv.cycleEarnings && inv.cycleEarnings.length > 0) || withdrawals.length > 0) && (
+        <div style={{ marginTop: '30px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3 style={{ color: '#333', margin: 0 }}>Cycle Withdrawals</h3>
+            <button
+              onClick={() => {
+                fetchInvestments();
+                fetchWithdrawals();
+              }}
+              style={{
+                background: '#6c757d',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              🔄 Refresh
+            </button>
+          </div>
+
+          {/* Withdrawal Summary */}
+          {(() => {
+            // Calculate totals from available cycles
+            const availableCycles = investments
+              .filter(inv => inv.cycleEarnings && inv.cycleEarnings.length > 0)
+              .flatMap(investment => 
+                investment.cycleEarnings
+                  .filter(cycle => !cycle.withdrawalRequested)
+                  .map(cycle => cycle.grossAmount)
+              );
+            
+            // Calculate totals from withdrawal requests
+            const completedWithdrawals = withdrawals.filter(w => w.status === 'completed' || w.status === 'approved');
+            const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending');
+            
+            const totalAvailable = availableCycles.reduce((sum, amount) => sum + amount, 0);
+            const totalPending = pendingWithdrawals.reduce((sum, w) => sum + (w.netAmount || w.amount * 0.85), 0);
+            const totalWithdrawn = completedWithdrawals.reduce((sum, w) => sum + (w.netAmount || w.amount * 0.85), 0);
+            const totalEarnings = totalAvailable + totalPending + totalWithdrawn;
+            
+            if (totalEarnings > 0) {
+              return (
+                <div style={{
+                  background: '#f8f9fa',
+                  padding: '20px',
                   borderRadius: '12px',
-                  fontSize: '12px',
-                  fontWeight: 'bold'
+                  border: '2px solid #dee2e6',
+                  marginBottom: '20px'
                 }}>
-                  {withdrawal.status.toUpperCase()}
-                </span>
-              </div>
-            ))}
+                  <h4 style={{ color: '#333', margin: '0 0 15px 0' }}>Withdrawal Summary</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>Total Earnings</p>
+                      <p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#333' }}>
+                        ${totalEarnings.toFixed(2)}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>Available to Withdraw</p>
+                      <p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#28a745' }}>
+                        ${(totalAvailable * 0.85).toFixed(2)}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>Pending Approval</p>
+                      <p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#ffc107' }}>
+                        ${totalPending.toFixed(2)}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>Successfully Withdrawn</p>
+                      <p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#17a2b8' }}>
+                        ${totalWithdrawn.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
+          {/* Individual Cycle Withdrawals */}
+          <div style={{ display: 'grid', gap: '15px' }}>
+            {/* Show available withdrawals for completed cycles */}
+            {investments
+              .filter(inv => inv.cycleEarnings && inv.cycleEarnings.length > 0)
+              .flatMap(investment =>
+                investment.cycleEarnings
+                  .filter(cycle => !cycle.withdrawalRequested)
+                  .map(cycle => ({ investment, cycle }))
+              )
+              .map(({ investment, cycle }, index) => (
+                <div key={`available-${investment._id}-cycle-${cycle.cycleNumber}`} style={{
+                  background: '#d4edda',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '2px solid #c3e6cb'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '15px' }}>
+                    <div style={{ flex: '1', minWidth: '250px' }}>
+                      <h5 style={{ color: '#155724', margin: '0 0 8px 0' }}>
+                        {investment.tier} - Cycle #{cycle.cycleNumber}
+                      </h5>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '14px' }}>
+                        Amount: ${investment.amount.toLocaleString()}
+                      </p>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#666' }}>
+                        Gross: ${cycle.grossAmount.toFixed(2)}
+                      </p>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#dc3545' }}>
+                        Fee (15%): ${(cycle.grossAmount * 0.15).toFixed(2)}
+                      </p>
+                      <p style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#28a745' }}>
+                        Net: ${(cycle.grossAmount * 0.85).toFixed(2)}
+                      </p>
+                    </div>
+
+                    <div style={{ minWidth: '200px', flex: '0 0 auto', maxWidth: '100%' }}>
+                      <input
+                        type="text"
+                        placeholder="Your wallet address"
+                        value={walletAddress}
+                        onChange={(e) => setWalletAddress(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          border: '1px solid #ddd',
+                          borderRadius: '4px',
+                          marginBottom: '8px',
+                          fontSize: '12px',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                      <button
+                        onClick={() => requestWithdrawal(investment._id)}
+                        style={{
+                          background: '#17a2b8',
+                          color: 'white',
+                          border: 'none',
+                          padding: '10px 20px',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          width: '100%'
+                        }}
+                      >
+                        💰 Request Withdrawal
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+
+              /* Show withdrawal status for requested withdrawals */
+            }{withdrawals.map((withdrawal, index) => {
+              const investment = investments.find(inv => {
+                const invId = inv._id?.toString();
+                const wId = withdrawal.investmentId?._id?.toString() || withdrawal.investmentId?.toString();
+                return invId === wId;
+              });
+              
+              console.log(`Withdrawal ${index}:`, {
+                id: withdrawal._id,
+                status: withdrawal.status,
+                cycleNumber: withdrawal.cycleNumber,
+                amount: withdrawal.amount
+              });
+
+              return (
+                <div key={`withdrawal-${withdrawal._id}-${index}`} style={{
+                  background: '#f8f9fa',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '2px solid #e1e5e9'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '15px' }}>
+                    <div style={{ flex: '1', minWidth: '250px' }}>
+                      <h5 style={{ color: '#333', margin: '0 0 8px 0' }}>
+                        {investment?.tier || 'Investment'} - Cycle #{withdrawal.cycleNumber || 1} Withdrawal
+                      </h5>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '14px' }}>
+                        Amount: ${investment?.amount?.toLocaleString() || 'N/A'}
+                      </p>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#666' }}>
+                        Gross: ${withdrawal.amount.toFixed(2)}
+                      </p>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#dc3545' }}>
+                        Fee (15%): ${(withdrawal.feeAmount || withdrawal.amount * 0.15).toFixed(2)}
+                      </p>
+                      <p style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#28a745' }}>
+                        Net: ${(withdrawal.netAmount || withdrawal.amount * 0.85).toFixed(2)}
+                      </p>
+                    </div>
+
+                    <div style={{ minWidth: '200px', textAlign: 'center', flex: '0 0 auto', maxWidth: '100%' }}>
+
+                        <div>
+                          <div style={{
+                            padding: '12px',
+                            borderRadius: '8px',
+                            background: (withdrawal.status === 'completed' || withdrawal.status === 'approved') ? '#d4edda' :
+                              withdrawal.status === 'rejected' ? '#f8d7da' : '#fff3cd',
+                            border: (withdrawal.status === 'completed' || withdrawal.status === 'approved') ? '1px solid #c3e6cb' :
+                              withdrawal.status === 'rejected' ? '1px solid #f5c6cb' : '1px solid #ffeaa7',
+                            marginBottom: '8px'
+                          }}>
+                            <p style={{
+                              fontSize: '14px',
+                              fontWeight: 'bold',
+                              color: (withdrawal.status === 'completed' || withdrawal.status === 'approved') ? '#155724' :
+                                withdrawal.status === 'rejected' ? '#721c24' : '#856404',
+                              margin: 0
+                            }}>
+                              {(withdrawal.status === 'completed' || withdrawal.status === 'approved') ? 'Completed' :
+                                withdrawal.status === 'rejected' ? 'Rejected' : 'Pending'}
+                            </p>
+                          </div>
+
+                          <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>
+                            {new Date(withdrawal.requestedAt).toLocaleString()}
+                          </p>
+                          {withdrawal.txHash && (
+                            <p style={{ fontSize: '10px', color: '#666', margin: '4px 0 0 0', wordBreak: 'break-all' }}>
+                              TX: {withdrawal.txHash.substring(0, 20)}...
+                            </p>
+                          )}
+                        </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
