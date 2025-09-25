@@ -2,6 +2,10 @@
 // export const API_URL = 'https://investment-platform-backend.vercel.app/api';
 
 
+// For local development:
+// export const API_URL = 'https://investment-platform-backend.vercel.app/api'
+
+
 // export const API_URL = 'http://localhost:5000/api';
 
 
@@ -10,6 +14,7 @@
 
 export const API_URL = 'https://investment-platform-backend.vercel.app/api';
 // export const API_URL = 'http://localhost:5000/api';
+
 
 
 
