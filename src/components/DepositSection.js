@@ -110,7 +110,7 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
           border: '2px solid #667eea',
           marginBottom: '15px'
         }}>
-          <h5 style={{ color: '#667eea', margin: '0 0 10px 0' }}>🦊 MetaMask / Primary Wallet</h5>
+         
           <p style={{
             fontSize: '16px',
             fontFamily: 'monospace',
