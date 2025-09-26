@@ -123,7 +123,7 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
           <button
             onClick={() => {
               navigator.clipboard.writeText(user.depositAddress);
-              toast.success('MetaMask address copied!');
+              toast.success('Wallet address copied!');
             }}
             style={{
               background: '#667eea',
@@ -135,7 +135,7 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
               fontSize: '14px'
             }}
           >
-            📋 Copy MetaMask Address
+            📋 Copy Wallet Address
           </button>
         </div>
 
