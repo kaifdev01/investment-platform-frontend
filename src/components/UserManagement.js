@@ -6,6 +6,9 @@ import '../styles/responsive.css';
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [showAddBalance, setShowAddBalance] = useState(null);
+  const [balanceAmount, setBalanceAmount] = useState('');
+  const [balanceNote, setBalanceNote] = useState('');
 
   const fetchUsers = async () => {
     try {
@@ -28,6 +31,32 @@ const UserManagement = () => {
       fetchUsers();
     } catch (error) {
       console.error('Failed to toggle user block status');
+    }
+  };
+
+  const addUserBalance = async (userId) => {
+    if (!balanceAmount || parseFloat(balanceAmount) <= 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API_URL}/admin/add-user-balance`, {
+        userId,
+        amount: parseFloat(balanceAmount),
+        note: balanceNote || 'Admin balance addition'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      alert(response.data.message);
+      setShowAddBalance(null);
+      setBalanceAmount('');
+      setBalanceNote('');
+      fetchUsers();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to add balance');
     }
   };
 
@@ -123,6 +152,20 @@ const UserManagement = () => {
                 >
                   {selectedUser === user._id ? 'Hide Details' : 'View Deposits'}
                 </button>
+                <button
+                  onClick={() => setShowAddBalance(showAddBalance === user._id ? null : user._id)}
+                  style={{
+                    background: '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  💰 Add Balance
+                </button>
                 {!user.isAdmin && (
                   <button
                     onClick={() => toggleBlockUser(user._id)}
@@ -141,6 +184,98 @@ const UserManagement = () => {
                 )}
               </div>
             </div>
+
+            {/* Add Balance Form */}
+            {showAddBalance === user._id && (
+              <div style={{ marginTop: '20px', padding: '15px', background: '#e8f5e8', borderRadius: '8px', border: '2px solid #28a745' }}>
+                <h5 style={{ color: '#333', margin: '0 0 10px 0' }}>
+                  💰 Add Balance to {user.firstName} {user.lastName}
+                </h5>
+                <div style={{ 
+                  background: '#fff3cd', 
+                  border: '1px solid #ffeaa7', 
+                  borderRadius: '6px', 
+                  padding: '12px', 
+                  marginBottom: '15px' 
+                }}>
+                  <p style={{ 
+                    color: '#856404', 
+                    margin: 0, 
+                    fontSize: '14px', 
+                    fontWeight: 'bold' 
+                  }}>
+                    ⚠️ WARNING: Please add balance carefully. This action cannot be undone once confirmed. Double-check the amount before proceeding.
+                  </p>
+                </div>
+                <div style={{ display: 'grid', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Amount ($)</label>
+                    <input
+                      type="number"
+                      value={balanceAmount}
+                      onChange={(e) => setBalanceAmount(e.target.value)}
+                      placeholder="Enter amount to add"
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        border: '1px solid #ddd',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Note (Optional)</label>
+                    <input
+                      type="text"
+                      value={balanceNote}
+                      onChange={(e) => setBalanceNote(e.target.value)}
+                      placeholder="Reason for balance addition"
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        border: '1px solid #ddd',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                    <button
+                      onClick={() => addUserBalance(user._id)}
+                      style={{
+                        background: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      ✅ Add Balance
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAddBalance(null);
+                        setBalanceAmount('');
+                        setBalanceNote('');
+                      }}
+                      style={{
+                        background: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ❌ Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Deposit Details */}
             {selectedUser === user._id && (
@@ -185,7 +320,7 @@ const UserManagement = () => {
                             {deposit.status.toUpperCase()}
                           </span>
                           <p style={{ margin: '5px 0 0 0', fontSize: '10px', color: '#666' }}>
-                            {deposit.type === 'demo' ? '🧪 Demo' : '💳 Real'}
+                            {deposit.type === 'demo' ? '🧪 Demo' : deposit.type === 'admin_credit' ? '👨‍💼 Admin' : '💳 Real'}
                           </p>
                         </div>
                       </div>
