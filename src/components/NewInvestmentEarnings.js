@@ -8,6 +8,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
   const [investments, setInvestments] = useState([]);
   const [withdrawals, setWithdrawals] = useState([]);
   const [walletAddress, setWalletAddress] = useState('');
+  const [showWithdrawAll, setShowWithdrawAll] = useState(false);
 
 
   const fetchInvestments = async () => {
@@ -91,7 +92,45 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success('Withdrawal requested! Admin approval required.');
-      setWalletAddress('');
+      // Don't clear wallet address - keep it saved
+      fetchInvestments();
+      fetchWithdrawals();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to request withdrawal');
+    }
+  };
+
+  const handleWithdrawAll = async () => {
+    if (!walletAddress) {
+      toast.error('Please enter your wallet address');
+      return;
+    }
+
+    const availableCycles = investments
+      .filter(inv => inv.cycleEarnings && inv.cycleEarnings.length > 0)
+      .flatMap(investment => 
+        investment.cycleEarnings
+          .filter(cycle => !cycle.withdrawalRequested)
+          .map(cycle => cycle.grossAmount)
+      );
+    
+    const totalAvailable = availableCycles.reduce((sum, amount) => sum + amount, 0);
+
+    if (totalAvailable <= 0) {
+      toast.error('No available earnings to withdraw');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API_URL}/withdrawal/request-all`, 
+        { walletAddress },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      toast.success(response.data.message);
+      // Don't clear wallet address - keep it saved
+      setShowWithdrawAll(false);
       fetchInvestments();
       fetchWithdrawals();
     } catch (error) {
@@ -132,12 +171,43 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
   useEffect(() => {
     fetchInvestments();
     fetchWithdrawals();
+    
     const interval = setInterval(() => {
       fetchInvestments();
       fetchWithdrawals();
     }, 2000); // Check every 2 seconds
     return () => clearInterval(interval);
   }, []);
+
+  // Load wallet address from dashboardData or user profile
+  useEffect(() => {
+    const loadWalletAddress = async () => {
+      // First try from dashboard data
+      if (dashboardData?.accountSummary?.withdrawalWallet) {
+        console.log('Loading wallet address from dashboard:', dashboardData.accountSummary.withdrawalWallet);
+        setWalletAddress(dashboardData.accountSummary.withdrawalWallet);
+        return;
+      }
+      
+      // Fallback: load from user profile
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${API_URL}/user/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.data.user.withdrawalWallet) {
+          console.log('Loading wallet address from profile:', response.data.user.withdrawalWallet);
+          setWalletAddress(response.data.user.withdrawalWallet);
+        }
+      } catch (error) {
+        console.error('Failed to load wallet address:', error);
+      }
+    };
+    
+    if (dashboardData) {
+      loadWalletAddress();
+    }
+  }, [dashboardData]);
 
   return (
     <div>
@@ -377,6 +447,92 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                       </p>
                     </div>
                   </div>
+                  
+                  {/* Withdraw All Button */}
+                  {totalAvailable > 0 && (
+                    <div style={{ marginTop: '15px', textAlign: 'center' }}>
+                      {!showWithdrawAll ? (
+                        <button
+                          onClick={() => setShowWithdrawAll(true)}
+                          style={{
+                            background: '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            padding: '12px 24px',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          💰 Withdraw All Available (${(totalAvailable * 0.85).toFixed(2)})
+                        </button>
+                      ) : (
+                        <div style={{
+                          background: '#fff3cd',
+                          border: '2px solid #ffc107',
+                          borderRadius: '8px',
+                          padding: '15px',
+                          maxWidth: '400px',
+                          margin: '0 auto'
+                        }}>
+                          <h5 style={{ color: '#856404', margin: '0 0 10px 0' }}>Withdraw All Available Earnings</h5>
+                          <p style={{ color: '#856404', fontSize: '12px', margin: '0 0 10px 0' }}>
+                            You will receive ${(totalAvailable * 0.85).toFixed(2)} after 15% platform fee
+                          </p>
+                          <input
+                            type="text"
+                            placeholder="Enter your wallet address"
+                            value={walletAddress}
+                            onChange={(e) => setWalletAddress(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '8px',
+                              borderRadius: '4px',
+                              border: '1px solid #ddd',
+                              fontSize: '12px',
+                              marginBottom: '10px',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                            <button
+                              onClick={handleWithdrawAll}
+                              style={{
+                                background: '#28a745',
+                                color: 'white',
+                                border: 'none',
+                                padding: '8px 16px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              ✅ Confirm Withdraw All
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowWithdrawAll(false);
+                                setWalletAddress('');
+                              }}
+                              style={{
+                                background: '#6c757d',
+                                color: 'white',
+                                border: 'none',
+                                padding: '8px 16px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '12px'
+                              }}
+                            >
+                              ❌ Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             }

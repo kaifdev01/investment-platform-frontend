@@ -117,6 +117,13 @@ const InvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
     return () => clearInterval(interval);
   }, []);
 
+  // Auto-fill saved wallet address when dashboard data changes
+  useEffect(() => {
+    if (dashboardData?.accountSummary?.withdrawalWallet && !walletAddress) {
+      setWalletAddress(dashboardData.accountSummary.withdrawalWallet);
+    }
+  }, [dashboardData]);
+
   return (
     <div>
       <h3 style={{ color: '#333', marginBottom: '20px', fontSize: '20px', fontWeight: '600' }}>Investment Earnings</h3>
@@ -162,14 +169,22 @@ const InvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                           background: activeCycle.isWeekday ? '#d4edda' : '#fff3cd',
                           borderColor: activeCycle.isWeekday ? '#c3e6cb' : '#ffeaa7'
                         }}>
-                          <p style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '4px' }}>
-                            Active Cycle
+                          <p style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>
+                            Earning Cycle
                           </p>
+                          <div style={{ fontSize: '12px', marginBottom: '8px' }}>
+                            <p style={{ margin: '2px 0' }}>Amount: ${investment.amount.toLocaleString()}</p>
+                            <p style={{ margin: '2px 0' }}>Gross: ${activeCycle.cycleEarning.toFixed(2)}</p>
+                            <p style={{ margin: '2px 0' }}>Fee (15%): ${(activeCycle.cycleEarning * 0.15).toFixed(2)}</p>
+                            <p style={{ margin: '2px 0', fontWeight: 'bold', color: '#28a745' }}>Net: ${(activeCycle.cycleEarning * 0.85).toFixed(2)}</p>
+                            <hr style={{ margin: '8px 0', border: 'none', borderTop: '1px solid #ddd' }} />
+                            <p style={{ margin: '2px 0', fontWeight: 'bold' }}>Total Value: ${(investment.amount + activeCycle.cycleEarning).toFixed(2)}</p>
+                            <p style={{ margin: '2px 0' }}>Total Gross: ${((investment.totalEarned || 0) + activeCycle.cycleEarning).toFixed(2)}</p>
+                            <p style={{ margin: '2px 0' }}>Total Fee: ${(((investment.totalEarned || 0) + activeCycle.cycleEarning) * 0.15).toFixed(2)}</p>
+                            <p style={{ margin: '2px 0', fontWeight: 'bold', color: '#28a745' }}>Total Net: ${(((investment.totalEarned || 0) + activeCycle.cycleEarning) * 0.85).toFixed(2)}</p>
+                          </div>
                           <p style={{ fontSize: '12px', marginBottom: '4px' }}>
                             {getTimeRemaining(activeCycle.endTime)}
-                          </p>
-                          <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#28a745' }}>
-                            Earning: ${activeCycle.cycleEarning.toFixed(2)}
                           </p>
                         </div>
 

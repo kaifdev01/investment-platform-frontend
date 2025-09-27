@@ -16,6 +16,7 @@ import DepositManagement from './DepositManagement';
 import SystemAnalytics from './SystemAnalytics';
 import AdminSettings from './AdminSettings';
 import BlockedUser from './BlockedUser';
+import WithdrawalSummary from './WithdrawalSummary';
 import { API_URL } from '../utils/api';
 
 const Dashboard = ({ user, setUser }) => {
