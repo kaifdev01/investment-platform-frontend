@@ -34,18 +34,18 @@ const UserManagement = () => {
     }
   };
 
-  const addUserBalance = async (userId) => {
-    if (!balanceAmount || parseFloat(balanceAmount) <= 0) {
-      alert('Please enter a valid amount');
+  const updateUserBalance = async (userId) => {
+    if (balanceAmount === '' || parseFloat(balanceAmount) < 0) {
+      alert('Please enter a valid amount (0 or greater)');
       return;
     }
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`${API_URL}/admin/add-user-balance`, {
+      const response = await axios.post(`${API_URL}/admin/update-user-balance`, {
         userId,
-        amount: parseFloat(balanceAmount),
-        note: balanceNote || 'Admin balance addition'
+        newBalance: parseFloat(balanceAmount),
+        note: balanceNote || 'Admin balance update'
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -56,7 +56,7 @@ const UserManagement = () => {
       setBalanceNote('');
       fetchUsers();
     } catch (error) {
-      alert(error.response?.data?.error || 'Failed to add balance');
+      alert(error.response?.data?.error || 'Failed to update balance');
     }
   };
 
@@ -164,7 +164,7 @@ const UserManagement = () => {
                     fontSize: '12px'
                   }}
                 >
-                  💰 Add Balance
+                  💰 Update Balance
                 </button>
                 {!user.isAdmin && (
                   <button
@@ -189,8 +189,11 @@ const UserManagement = () => {
             {showAddBalance === user._id && (
               <div style={{ marginTop: '20px', padding: '15px', background: '#e8f5e8', borderRadius: '8px', border: '2px solid #28a745' }}>
                 <h5 style={{ color: '#333', margin: '0 0 10px 0' }}>
-                  💰 Add Balance to {user.firstName} {user.lastName}
+                  💰 Update Balance for {user.firstName} {user.lastName}
                 </h5>
+                <p style={{ color: '#666', fontSize: '12px', margin: '0 0 10px 0' }}>
+                  Current Balance: <strong>${user.balance.toFixed(2)}</strong>
+                </p>
                 <div style={{ 
                   background: '#fff3cd', 
                   border: '1px solid #ffeaa7', 
@@ -204,17 +207,17 @@ const UserManagement = () => {
                     fontSize: '14px', 
                     fontWeight: 'bold' 
                   }}>
-                    ⚠️ WARNING: Please add balance carefully. This action cannot be undone once confirmed. Double-check the amount before proceeding.
+                    ⚠️ WARNING: This will set the user's balance to the exact amount entered. This action cannot be undone.
                   </p>
                 </div>
                 <div style={{ display: 'grid', gap: '10px' }}>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Amount ($)</label>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>New Balance ($)</label>
                     <input
                       type="number"
                       value={balanceAmount}
                       onChange={(e) => setBalanceAmount(e.target.value)}
-                      placeholder="Enter amount to add"
+                      placeholder={`Current: ${user.balance.toFixed(2)}`}
                       style={{
                         width: '100%',
                         padding: '8px',
@@ -242,7 +245,7 @@ const UserManagement = () => {
                   </div>
                   <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                     <button
-                      onClick={() => addUserBalance(user._id)}
+                      onClick={() => updateUserBalance(user._id)}
                       style={{
                         background: '#28a745',
                         color: 'white',
@@ -253,7 +256,7 @@ const UserManagement = () => {
                         fontWeight: 'bold'
                       }}
                     >
-                      ✅ Add Balance
+                      ✅ Update Balance
                     </button>
                     <button
                       onClick={() => {
