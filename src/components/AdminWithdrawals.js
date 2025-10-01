@@ -168,7 +168,7 @@ const AdminWithdrawals = () => {
                   <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#28a745', fontSize: '18px' }}>
                     Gross: ${withdrawal.amount.toFixed(2)} USDC
                   </p>
-                  {withdrawal.feeAmount && (
+                  {withdrawal.feeAmount > 0 ? (
                     <>
                       <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#dc3545' }}>
                         Fee (15%): ${withdrawal.feeAmount.toFixed(2)} USDC
@@ -177,6 +177,10 @@ const AdminWithdrawals = () => {
                         Net Amount: ${withdrawal.netAmount.toFixed(2)} USDC
                       </p>
                     </>
+                  ) : (
+                    <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#007bff', fontSize: '16px' }}>
+                      Net Amount: ${withdrawal.netAmount.toFixed(2)} USDC (No Fee)
+                    </p>
                   )}
                   <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#666' }}>
                     Investment: {withdrawal.investmentId?.tier || 'N/A'}
