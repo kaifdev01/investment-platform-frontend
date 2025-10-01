@@ -51,8 +51,8 @@ const BlockedUser = ({ onLogout }) => {
         }}>
           <h4 style={{ color: '#333', marginBottom: '10px' }}>Contact Support</h4>
           <p style={{ color: '#666', margin: 0 }}>
-            📧 support@platform.com<br/>
-            📞 +1 (555) 123-4567
+            📧 Infohprfarm@gmail.com<br/>
+            
           </p>
         </div>
         

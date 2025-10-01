@@ -110,7 +110,7 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
           border: '2px solid #667eea',
           marginBottom: '15px'
         }}>
-          {/* <h5 style={{ color: '#667eea', margin: '0 0 10px 0' }}>Wallet</h5> */}
+
           <p style={{
             fontSize: '16px',
             fontFamily: 'monospace',
@@ -123,7 +123,9 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
           <button
             onClick={() => {
               navigator.clipboard.writeText(user.depositAddress);
+
               toast.success('wallet address copied!');
+
             }}
             style={{
               background: '#667eea',
@@ -135,7 +137,9 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
               fontSize: '14px'
             }}
           >
+
             📋 Copy wallet Address
+
           </button>
         </div>
 
