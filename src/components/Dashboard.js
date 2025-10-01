@@ -16,6 +16,7 @@ import DepositManagement from './DepositManagement';
 import SystemAnalytics from './SystemAnalytics';
 import AdminSettings from './AdminSettings';
 import BlockedUser from './BlockedUser';
+import WithdrawalSummary from './WithdrawalSummary';
 import { API_URL } from '../utils/api';
 
 const Dashboard = ({ user, setUser }) => {
@@ -281,10 +282,12 @@ const Dashboard = ({ user, setUser }) => {
                     const completedWithdrawals = withdrawals.filter(w => w.status === 'completed' || w.status === 'approved');
                     const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending');
                     
-                    const totalAvailable = availableCycles.reduce((sum, amount) => sum + amount, 0);
+                    const cycleEarnings = availableCycles.reduce((sum, amount) => sum + amount, 0);
+                    const userBalance = dashboardData.accountSummary.balance || 0;
+                    const referralRewards = dashboardData.accountSummary.referralRewards || 0;
                     const totalPending = pendingWithdrawals.reduce((sum, w) => sum + (w.netAmount || w.amount * 0.85), 0);
                     const totalWithdrawn = completedWithdrawals.reduce((sum, w) => sum + (w.netAmount || w.amount * 0.85), 0);
-                    const totalEarnings = totalAvailable + totalPending + totalWithdrawn;
+                    const totalEarnings = cycleEarnings + totalPending + totalWithdrawn;
                     
                     return (
                       <div className="grid-responsive">
@@ -302,7 +305,7 @@ const Dashboard = ({ user, setUser }) => {
                         </div>
                         <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
                           <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Available to Withdraw</h3>
-                          <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffc107', margin: 0 }}>${(totalAvailable * 0.85).toFixed(2)}</p>
+                          <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffc107', margin: 0 }}>${(cycleEarnings * 0.85 + userBalance + referralRewards).toFixed(2)}</p>
                         </div>
                         <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' }}>
                           <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Pending Approval</h3>

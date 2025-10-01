@@ -84,13 +84,13 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
 
   useEffect(() => {
     fetchDepositHistory();
-    
+
     // Auto-refresh deposit status every 30 seconds
     const interval = setInterval(() => {
       fetchDepositHistory();
       fetchDashboard(); // Also refresh dashboard data
     }, 30000);
-    
+
     return () => clearInterval(interval);
   }, [fetchDashboard]);
   // min 2 min lgty yahan phir loader na laga die? nhi zaroorat nhi
@@ -101,8 +101,8 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
       {/* Deposit Addresses */}
       <div style={{ background: '#f8f9fa', padding: '30px', borderRadius: '15px', textAlign: 'center', marginBottom: '20px' }}>
         <h4 style={{ color: '#333', marginBottom: '15px' }}>Platform Deposit Address</h4>
-        
-        {/* MetaMask Address */}
+
+        {/* wallet Address */}
         <div style={{
           background: 'white',
           padding: '20px',
@@ -110,7 +110,7 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
           border: '2px solid #667eea',
           marginBottom: '15px'
         }}>
-         
+
           <p style={{
             fontSize: '16px',
             fontFamily: 'monospace',
@@ -123,7 +123,9 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
           <button
             onClick={() => {
               navigator.clipboard.writeText(user.depositAddress);
-              toast.success('Wallet address copied!');
+
+              toast.success('wallet address copied!');
+
             }}
             style={{
               background: '#667eea',
@@ -135,7 +137,9 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
               fontSize: '14px'
             }}
           >
-            📋 Copy Wallet Address
+
+            📋 Copy wallet Address
+
           </button>
         </div>
 
@@ -143,7 +147,7 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
         <div style={{ textAlign: 'left', background: '#d1ecf1', padding: '15px', borderRadius: '8px', border: '1px solid #bee5eb' }}>
           <h5 style={{ color: '#0c5460', margin: '0 0 10px 0' }}>🔄 How Real Deposits Work:</h5>
           <ul style={{ color: '#0c5460', margin: 0, paddingLeft: '20px', fontSize: '14px' }}>
-            <li><strong>Send USDC</strong> from your wallet (MetaMask, OKX, etc.) to the address above</li>
+            <li><strong>Send USDC</strong> from your wallet (wallet, OKX, etc.) to the address above</li>
             <li><strong>Submit Details</strong> using the form below</li>
             <li><strong>Auto-Processing</strong>: System monitors blockchain and credits your balance</li>
             <li><strong>Network</strong>: Use Polygon network for lower fees</li>
@@ -279,7 +283,7 @@ const DepositSection = ({ user, dashboardData, fetchDashboard }) => {
                   🔧 Update
                 </button>
               </div>
-              
+
               {editingDeposit === deposit._id && (
                 <div style={{ marginTop: '15px', padding: '15px', background: '#f8f9fa', borderRadius: '6px' }}>
                   <h5 style={{ margin: '0 0 10px 0', color: '#333' }}>Update Transaction Details</h5>

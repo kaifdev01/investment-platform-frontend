@@ -8,6 +8,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
   const [investments, setInvestments] = useState([]);
   const [withdrawals, setWithdrawals] = useState([]);
   const [walletAddress, setWalletAddress] = useState('');
+  const [showWithdrawAll, setShowWithdrawAll] = useState(false);
 
 
   const fetchInvestments = async () => {
@@ -91,7 +92,48 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success('Withdrawal requested! Admin approval required.');
-      setWalletAddress('');
+      // Don't clear wallet address - keep it saved
+      fetchInvestments();
+      fetchWithdrawals();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to request withdrawal');
+    }
+  };
+
+  const handleWithdrawAll = async () => {
+    if (!walletAddress) {
+      toast.error('Please enter your wallet address');
+      return;
+    }
+
+    const availableCycles = investments
+      .filter(inv => inv.cycleEarnings && inv.cycleEarnings.length > 0)
+      .flatMap(investment =>
+        investment.cycleEarnings
+          .filter(cycle => !cycle.withdrawalRequested)
+          .map(cycle => cycle.grossAmount)
+      );
+
+    const cycleEarnings = availableCycles.reduce((sum, amount) => sum + amount, 0);
+    const userBalance = dashboardData?.accountSummary?.balance || 0;
+    const referralRewards = dashboardData?.accountSummary?.referralRewards || 0;
+    const totalAvailable = cycleEarnings + userBalance + referralRewards;
+
+    if (totalAvailable <= 0) {
+      toast.error('No available funds to withdraw');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API_URL}/withdrawal/request-all`,
+        { walletAddress },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast.success(response.data.message);
+      // Don't clear wallet address - keep it saved
+      setShowWithdrawAll(false);
       fetchInvestments();
       fetchWithdrawals();
     } catch (error) {
@@ -132,12 +174,43 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
   useEffect(() => {
     fetchInvestments();
     fetchWithdrawals();
+
     const interval = setInterval(() => {
       fetchInvestments();
       fetchWithdrawals();
     }, 2000); // Check every 2 seconds
     return () => clearInterval(interval);
   }, []);
+
+  // Load wallet address from dashboardData or user profile
+  useEffect(() => {
+    const loadWalletAddress = async () => {
+      // First try from dashboard data
+      if (dashboardData?.accountSummary?.withdrawalWallet) {
+        console.log('Loading wallet address from dashboard:', dashboardData.accountSummary.withdrawalWallet);
+        setWalletAddress(dashboardData.accountSummary.withdrawalWallet);
+        return;
+      }
+
+      // Fallback: load from user profile
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${API_URL}/user/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.data.user.withdrawalWallet) {
+          console.log('Loading wallet address from profile:', response.data.user.withdrawalWallet);
+          setWalletAddress(response.data.user.withdrawalWallet);
+        }
+      } catch (error) {
+        console.error('Failed to load wallet address:', error);
+      }
+    };
+
+    if (dashboardData) {
+      loadWalletAddress();
+    }
+  }, [dashboardData]);
 
   return (
     <div>
@@ -326,21 +399,26 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
             // Calculate totals from available cycles
             const availableCycles = investments
               .filter(inv => inv.cycleEarnings && inv.cycleEarnings.length > 0)
-              .flatMap(investment => 
+              .flatMap(investment =>
                 investment.cycleEarnings
                   .filter(cycle => !cycle.withdrawalRequested)
                   .map(cycle => cycle.grossAmount)
               );
-            
+
+            // Include USDC balance and referral rewards
+            const cycleEarnings = availableCycles.reduce((sum, amount) => sum + amount, 0);
+            const userBalance = dashboardData?.accountSummary?.balance || 0;
+            const referralRewards = dashboardData?.accountSummary?.referralRewards || 0;
+
             // Calculate totals from withdrawal requests
             const completedWithdrawals = withdrawals.filter(w => w.status === 'completed' || w.status === 'approved');
             const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending');
-            
-            const totalAvailable = availableCycles.reduce((sum, amount) => sum + amount, 0);
+
+            const totalAvailable = cycleEarnings + userBalance + referralRewards;
             const totalPending = pendingWithdrawals.reduce((sum, w) => sum + (w.netAmount || w.amount * 0.85), 0);
             const totalWithdrawn = completedWithdrawals.reduce((sum, w) => sum + (w.netAmount || w.amount * 0.85), 0);
-            const totalEarnings = totalAvailable + totalPending + totalWithdrawn;
-            
+            const totalEarnings = cycleEarnings + totalPending + totalWithdrawn; // Only cycle earnings
+
             if (totalEarnings > 0) {
               return (
                 <div style={{
@@ -361,7 +439,10 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                     <div style={{ textAlign: 'center' }}>
                       <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>Available to Withdraw</p>
                       <p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#28a745' }}>
-                        ${(totalAvailable * 0.85).toFixed(2)}
+                        ${(cycleEarnings * 0.85 + userBalance + referralRewards).toFixed(2)}
+                      </p>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: '#666' }}>
+                        USDC + Referral
                       </p>
                     </div>
                     <div style={{ textAlign: 'center' }}>
@@ -377,93 +458,108 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                       </p>
                     </div>
                   </div>
+
+                  {/* Withdraw All Button */}
+                  {totalAvailable > 0 && (
+                    <div style={{ marginTop: '15px', textAlign: 'center' }}>
+                      {!showWithdrawAll ? (
+                        <button
+                          onClick={() => setShowWithdrawAll(true)}
+                          style={{
+                            background: '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            padding: '12px 24px',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          💰 Withdraw All Available (${(cycleEarnings * 0.85 + userBalance + referralRewards).toFixed(2)})
+                        </button>
+                      ) : (
+                        <div style={{
+                          background: '#fff3cd',
+                          border: '2px solid #ffc107',
+                          borderRadius: '8px',
+                          padding: '15px',
+                          maxWidth: '400px',
+                          margin: '0 auto'
+                        }}>
+                          <h5 style={{ color: '#856404', margin: '0 0 10px 0' }}>Withdraw All Available Earnings</h5>
+                          <p style={{ color: '#856404', fontSize: '12px', margin: '0 0 10px 0' }}>
+                            You will receive ${(cycleEarnings * 0.85 + userBalance + referralRewards).toFixed(2)} (15% fee only on earnings)
+                          </p>
+                          <input
+                            type="text"
+                            placeholder="Enter your wallet address"
+                            value={walletAddress}
+                            onChange={(e) => setWalletAddress(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '8px',
+                              borderRadius: '4px',
+                              border: '1px solid #ddd',
+                              fontSize: '12px',
+                              marginBottom: '10px',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                            <button
+                              onClick={handleWithdrawAll}
+                              style={{
+                                background: '#28a745',
+                                color: 'white',
+                                border: 'none',
+                                padding: '8px 16px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              ✅ Confirm Withdraw All
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowWithdrawAll(false);
+                                setWalletAddress('');
+                              }}
+                              style={{
+                                background: '#6c757d',
+                                color: 'white',
+                                border: 'none',
+                                padding: '8px 16px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '12px'
+                              }}
+                            >
+                              ❌ Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             }
             return null;
           })()}
 
-          {/* Individual Cycle Withdrawals */}
+          {/* Individual withdrawals disabled - only show withdrawal history */}
           <div style={{ display: 'grid', gap: '15px' }}>
-            {/* Show available withdrawals for completed cycles */}
-            {investments
-              .filter(inv => inv.cycleEarnings && inv.cycleEarnings.length > 0)
-              .flatMap(investment =>
-                investment.cycleEarnings
-                  .filter(cycle => !cycle.withdrawalRequested)
-                  .map(cycle => ({ investment, cycle }))
-              )
-              .map(({ investment, cycle }, index) => (
-                <div key={`available-${investment._id}-cycle-${cycle.cycleNumber}`} style={{
-                  background: '#d4edda',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  border: '2px solid #c3e6cb'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '15px' }}>
-                    <div style={{ flex: '1', minWidth: '250px' }}>
-                      <h5 style={{ color: '#155724', margin: '0 0 8px 0' }}>
-                        {investment.tier} - Cycle #{cycle.cycleNumber}
-                      </h5>
-                      <p style={{ margin: '0 0 4px 0', fontSize: '14px' }}>
-                        Amount: ${investment.amount.toLocaleString()}
-                      </p>
-                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#666' }}>
-                        Gross: ${cycle.grossAmount.toFixed(2)}
-                      </p>
-                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#dc3545' }}>
-                        Fee (15%): ${(cycle.grossAmount * 0.15).toFixed(2)}
-                      </p>
-                      <p style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#28a745' }}>
-                        Net: ${(cycle.grossAmount * 0.85).toFixed(2)}
-                      </p>
-                    </div>
-
-                    <div style={{ minWidth: '200px', flex: '0 0 auto', maxWidth: '100%' }}>
-                      <input
-                        type="text"
-                        placeholder="Your wallet address"
-                        value={walletAddress}
-                        onChange={(e) => setWalletAddress(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '8px',
-                          border: '1px solid #ddd',
-                          borderRadius: '4px',
-                          marginBottom: '8px',
-                          fontSize: '12px',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                      <button
-                        onClick={() => requestWithdrawal(investment._id)}
-                        style={{
-                          background: '#17a2b8',
-                          color: 'white',
-                          border: 'none',
-                          padding: '10px 20px',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          fontWeight: 'bold',
-                          cursor: 'pointer',
-                          width: '100%'
-                        }}
-                      >
-                        💰 Request Withdrawal
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-
-              /* Show withdrawal status for requested withdrawals */
-            }{withdrawals.map((withdrawal, index) => {
+            {/* Show withdrawal status for requested withdrawals */}
+            {withdrawals.map((withdrawal, index) => {
               const investment = investments.find(inv => {
                 const invId = inv._id?.toString();
                 const wId = withdrawal.investmentId?._id?.toString() || withdrawal.investmentId?.toString();
                 return invId === wId;
               });
-              
+
               console.log(`Withdrawal ${index}:`, {
                 id: withdrawal._id,
                 status: withdrawal.status,
@@ -499,37 +595,37 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
 
                     <div style={{ minWidth: '200px', textAlign: 'center', flex: '0 0 auto', maxWidth: '100%' }}>
 
-                        <div>
-                          <div style={{
-                            padding: '12px',
-                            borderRadius: '8px',
-                            background: (withdrawal.status === 'completed' || withdrawal.status === 'approved') ? '#d4edda' :
-                              withdrawal.status === 'rejected' ? '#f8d7da' : '#fff3cd',
-                            border: (withdrawal.status === 'completed' || withdrawal.status === 'approved') ? '1px solid #c3e6cb' :
-                              withdrawal.status === 'rejected' ? '1px solid #f5c6cb' : '1px solid #ffeaa7',
-                            marginBottom: '8px'
+                      <div>
+                        <div style={{
+                          padding: '12px',
+                          borderRadius: '8px',
+                          background: (withdrawal.status === 'completed' || withdrawal.status === 'approved') ? '#d4edda' :
+                            withdrawal.status === 'rejected' ? '#f8d7da' : '#fff3cd',
+                          border: (withdrawal.status === 'completed' || withdrawal.status === 'approved') ? '1px solid #c3e6cb' :
+                            withdrawal.status === 'rejected' ? '1px solid #f5c6cb' : '1px solid #ffeaa7',
+                          marginBottom: '8px'
+                        }}>
+                          <p style={{
+                            fontSize: '14px',
+                            fontWeight: 'bold',
+                            color: (withdrawal.status === 'completed' || withdrawal.status === 'approved') ? '#155724' :
+                              withdrawal.status === 'rejected' ? '#721c24' : '#856404',
+                            margin: 0
                           }}>
-                            <p style={{
-                              fontSize: '14px',
-                              fontWeight: 'bold',
-                              color: (withdrawal.status === 'completed' || withdrawal.status === 'approved') ? '#155724' :
-                                withdrawal.status === 'rejected' ? '#721c24' : '#856404',
-                              margin: 0
-                            }}>
-                              {(withdrawal.status === 'completed' || withdrawal.status === 'approved') ? 'Completed' :
-                                withdrawal.status === 'rejected' ? 'Rejected' : 'Pending'}
-                            </p>
-                          </div>
-
-                          <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>
-                            {new Date(withdrawal.requestedAt).toLocaleString()}
+                            {(withdrawal.status === 'completed' || withdrawal.status === 'approved') ? 'Completed' :
+                              withdrawal.status === 'rejected' ? 'Rejected' : 'Pending'}
                           </p>
-                          {withdrawal.txHash && (
-                            <p style={{ fontSize: '10px', color: '#666', margin: '4px 0 0 0', wordBreak: 'break-all' }}>
-                              TX: {withdrawal.txHash.substring(0, 20)}...
-                            </p>
-                          )}
                         </div>
+
+                        <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>
+                          {new Date(withdrawal.requestedAt).toLocaleString()}
+                        </p>
+                        {withdrawal.txHash && (
+                          <p style={{ fontSize: '10px', color: '#666', margin: '4px 0 0 0', wordBreak: 'break-all' }}>
+                            TX: {withdrawal.txHash.substring(0, 20)}...
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
