@@ -136,6 +136,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
       setShowWithdrawAll(false);
       fetchInvestments();
       fetchWithdrawals();
+      fetchDashboard(); // Refresh dashboard to show updated balance
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to request withdrawal');
     }
@@ -577,19 +578,21 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '15px' }}>
                     <div style={{ flex: '1', minWidth: '250px' }}>
                       <h5 style={{ color: '#333', margin: '0 0 8px 0' }}>
-                        {investment?.tier || 'Investment'} - Cycle #{withdrawal.cycleNumber || 1} Withdrawal
+                        {investment?.tier || (!withdrawal.investmentId ? 'Balance & Rewards' : 'Investment')} - {withdrawal.cycleNumber ? `Cycle #${withdrawal.cycleNumber}` : ''} Withdrawal
                       </h5>
                       <p style={{ margin: '0 0 4px 0', fontSize: '14px' }}>
-                        Amount: ${investment?.amount?.toLocaleString() || 'N/A'}
+                        Amount: ${investment?.amount?.toLocaleString() || withdrawal.amount.toFixed(2)}
                       </p>
                       <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#666' }}>
                         Gross: ${withdrawal.amount.toFixed(2)}
                       </p>
-                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#dc3545' }}>
-                        Fee (15%): ${(withdrawal.feeAmount || withdrawal.amount * 0.15).toFixed(2)}
-                      </p>
+                      {(withdrawal.feeAmount || 0) > 0 && (
+                        <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#dc3545' }}>
+                          Fee (15%): ${(withdrawal.feeAmount || withdrawal.amount * 0.15).toFixed(2)}
+                        </p>
+                      )}
                       <p style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#28a745' }}>
-                        Net: ${(withdrawal.netAmount || withdrawal.amount * 0.85).toFixed(2)}
+                        Net: ${(withdrawal.netAmount || withdrawal.amount * 0.85).toFixed(2)}{(withdrawal.feeAmount || 0) === 0 ? ' (No Fee)' : ''}
                       </p>
                     </div>
 
