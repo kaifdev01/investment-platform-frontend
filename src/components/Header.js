@@ -47,6 +47,20 @@ const Header = ({ user, onLogout, onGenerateInvitation, onProfileClick }) => {
           >
             Invite
           </button>
+          <button
+            onClick={() => window.open('https://signal.group/#CjQKIFpqOkqFobFuFUfQISD5PqEwsjUOuJS5JF9t0pkiFiX_EhD2qBF8MiWDcGH6bFrvIUua', '_blank')}
+            style={{
+              background: 'rgba(37, 211, 102, 0.8)',
+              color: 'white',
+              border: '1px solid rgba(37, 211, 102, 0.5)',
+              padding: '8px 16px',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            Join Signal
+          </button>
           <div style={{ position: 'relative' }}>
             <button
               onClick={() => setShowProfileDropdown(!showProfileDropdown)}
