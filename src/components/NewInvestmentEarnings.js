@@ -9,6 +9,8 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
   const [withdrawals, setWithdrawals] = useState([]);
   const [walletAddress, setWalletAddress] = useState('');
   const [showWithdrawAll, setShowWithdrawAll] = useState(false);
+  const [withdrawalAmount, setWithdrawalAmount] = useState('');
+  const [withdrawalPassword, setWithdrawalPassword] = useState('');
 
 
   const fetchInvestments = async () => {
@@ -106,6 +108,16 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
       return;
     }
 
+    if (!withdrawalAmount || parseFloat(withdrawalAmount) <= 0) {
+      toast.error('Please enter a valid withdrawal amount');
+      return;
+    }
+
+    if (!withdrawalPassword) {
+      toast.error('Please enter your withdrawal password');
+      return;
+    }
+
     const availableCycles = investments
       .filter(inv => inv.cycleEarnings && inv.cycleEarnings.length > 0)
       .flatMap(investment =>
@@ -117,26 +129,31 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
     const cycleEarnings = availableCycles.reduce((sum, amount) => sum + amount, 0);
     const userBalance = dashboardData?.accountSummary?.balance || 0;
     const referralRewards = dashboardData?.accountSummary?.referralRewards || 0;
-    const totalAvailable = cycleEarnings + userBalance + referralRewards;
+    const totalAvailable = (cycleEarnings * 0.85) + userBalance + referralRewards;
 
-    if (totalAvailable <= 0) {
-      toast.error('No available funds to withdraw');
+    if (parseFloat(withdrawalAmount) > totalAvailable) {
+      toast.error(`Insufficient funds. Available: $${totalAvailable.toFixed(2)}`);
       return;
     }
 
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(`${API_URL}/withdrawal/request-all`,
-        { walletAddress },
+        { 
+          walletAddress, 
+          withdrawalPassword,
+          amount: parseFloat(withdrawalAmount)
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       toast.success(response.data.message);
-      // Don't clear wallet address - keep it saved
       setShowWithdrawAll(false);
+      setWithdrawalAmount('');
+      setWithdrawalPassword('');
       fetchInvestments();
       fetchWithdrawals();
-      fetchDashboard(); // Refresh dashboard to show updated balance
+      fetchDashboard();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to request withdrawal');
     }
@@ -372,7 +389,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
       )}
 
       {/* Withdrawal Management Section */}
-      {(investments.some(inv => inv.cycleEarnings && inv.cycleEarnings.length > 0) || withdrawals.length > 0) && (
+      {(investments.some(inv => inv.cycleEarnings && inv.cycleEarnings.length > 0) || withdrawals.length > 0 || (dashboardData?.accountSummary?.balance > 0) || (dashboardData?.accountSummary?.referralRewards > 0)) && (
         <div style={{ marginTop: '30px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h3 style={{ color: '#333', margin: 0 }}>Cycle Withdrawals</h3>
@@ -418,9 +435,9 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
             const totalAvailable = cycleEarnings + userBalance + referralRewards;
             const totalPending = pendingWithdrawals.reduce((sum, w) => sum + (w.netAmount || w.amount * 0.85), 0);
             const totalWithdrawn = completedWithdrawals.reduce((sum, w) => sum + (w.netAmount || w.amount * 0.85), 0);
-            const totalEarnings = cycleEarnings + totalPending + totalWithdrawn; // Only cycle earnings
+            const totalEarnings = cycleEarnings; // Current available earnings only
 
-            if (totalEarnings > 0) {
+            if (totalEarnings > 0 || userBalance > 0 || referralRewards > 0) {
               return (
                 <div style={{
                   background: '#f8f9fa',
@@ -432,7 +449,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                   <h4 style={{ color: '#333', margin: '0 0 15px 0' }}>Withdrawal Summary</h4>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
                     <div style={{ textAlign: 'center' }}>
-                      <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>Total Earnings</p>
+                      <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>Current Earnings</p>
                       <p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#333' }}>
                         ${totalEarnings.toFixed(2)}
                       </p>
@@ -488,15 +505,48 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                           maxWidth: '400px',
                           margin: '0 auto'
                         }}>
-                          <h5 style={{ color: '#856404', margin: '0 0 10px 0' }}>Withdraw All Available Earnings</h5>
+                          <h5 style={{ color: '#856404', margin: '0 0 10px 0' }}>Withdraw Funds</h5>
                           <p style={{ color: '#856404', fontSize: '12px', margin: '0 0 10px 0' }}>
-                            You will receive ${(cycleEarnings * 0.85 + userBalance + referralRewards).toFixed(2)} (15% fee only on earnings)
+                            Available: ${(cycleEarnings * 0.85 + userBalance + referralRewards).toFixed(2)} (15% fee only on earnings)
                           </p>
                           <input
                             type="text"
                             placeholder="Enter your wallet address"
                             value={walletAddress}
                             onChange={(e) => setWalletAddress(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '8px',
+                              borderRadius: '4px',
+                              border: '1px solid #ddd',
+                              fontSize: '12px',
+                              marginBottom: '10px',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                          <input
+                            type="number"
+                            placeholder="Enter withdrawal amount"
+                            value={withdrawalAmount}
+                            onChange={(e) => setWithdrawalAmount(e.target.value)}
+                            min="0"
+                            max={(cycleEarnings * 0.85 + userBalance + referralRewards).toFixed(2)}
+                            step="0.01"
+                            style={{
+                              width: '100%',
+                              padding: '8px',
+                              borderRadius: '4px',
+                              border: '1px solid #ddd',
+                              fontSize: '12px',
+                              marginBottom: '10px',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                          <input
+                            type="password"
+                            placeholder="Enter withdrawal password"
+                            value={withdrawalPassword}
+                            onChange={(e) => setWithdrawalPassword(e.target.value)}
                             style={{
                               width: '100%',
                               padding: '8px',
@@ -521,12 +571,13 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                                 fontWeight: 'bold'
                               }}
                             >
-                              ✅ Confirm Withdraw All
+                              ✅ Confirm Withdrawal
                             </button>
                             <button
                               onClick={() => {
                                 setShowWithdrawAll(false);
-                                setWalletAddress('');
+                                setWithdrawalAmount('');
+                                setWithdrawalPassword('');
                               }}
                               style={{
                                 background: '#6c757d',
