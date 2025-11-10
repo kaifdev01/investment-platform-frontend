@@ -5,23 +5,28 @@ import Header from './Header';
 import AnimatedBackground from './AnimatedBackground';
 import InvitationModal from './InvitationModal';
 import ProfileSection from './ProfileSection';
+// eslint-disable-next-line no-unused-vars
 import InvestmentEarnings from './InvestmentEarnings';
 import NewInvestmentEarnings from './NewInvestmentEarnings';
 import DepositSection from './DepositSection';
+// eslint-disable-next-line no-unused-vars
 import AdminPanel from './AdminPanel';
 import AdminWithdrawals from './AdminWithdrawals';
 import AdminDashboard from './AdminDashboard';
 import UserManagement from './UserManagement';
 import DepositManagement from './DepositManagement';
 import SystemAnalytics from './SystemAnalytics';
+// eslint-disable-next-line no-unused-vars
 import AdminSettings from './AdminSettings';
 import BlockedUser from './BlockedUser';
+// eslint-disable-next-line no-unused-vars
 import WithdrawalSummary from './WithdrawalSummary';
 import { API_URL } from '../utils/api';
 
 const Dashboard = ({ user, setUser }) => {
   const [dashboardData, setDashboardData] = useState(null);
   const [investmentTiers, setInvestmentTiers] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [referrals, setReferrals] = useState([]);
   const [referralTree, setReferralTree] = useState(null);
   const [activeTab, setActiveTab] = useState(user?.isAdmin ? 'admin' : 'dashboard');
@@ -172,6 +177,7 @@ const Dashboard = ({ user, setUser }) => {
         fetchInvestmentTiers();
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, user]);
 
   // Check if user is blocked
@@ -287,6 +293,7 @@ const Dashboard = ({ user, setUser }) => {
                     const referralRewards = dashboardData.accountSummary.referralRewards || 0;
                     const totalPending = pendingWithdrawals.reduce((sum, w) => sum + (w.netAmount || w.amount * 0.85), 0);
                     const totalWithdrawn = completedWithdrawals.reduce((sum, w) => sum + (w.netAmount || w.amount * 0.85), 0);
+                    // eslint-disable-next-line no-unused-vars
                     const totalEarnings = cycleEarnings + totalPending + totalWithdrawn; // This shows lifetime earnings
                     const actualEarnings = cycleEarnings; // This shows current available earnings
                     

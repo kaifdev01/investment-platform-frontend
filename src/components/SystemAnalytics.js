@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { API_URL } from '../utils/api';
 import '../styles/responsive.css';
@@ -8,7 +8,7 @@ const SystemAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('30');
 
-  const fetchAnalytics = async (selectedPeriod = period) => {
+  const fetchAnalytics = useCallback(async (selectedPeriod = period) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -21,7 +21,7 @@ const SystemAnalytics = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [period]);
 
   const handlePeriodChange = (newPeriod) => {
     setPeriod(newPeriod);
@@ -30,8 +30,7 @@ const SystemAnalytics = () => {
 
   useEffect(() => {
     fetchAnalytics();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchAnalytics]);
 
   const SimpleChart = ({ data, title, color, valueKey = 'count', prefix = '' }) => {
     if (!data || data.length === 0) return null;
