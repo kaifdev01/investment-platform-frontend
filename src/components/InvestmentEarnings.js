@@ -122,7 +122,7 @@ const InvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
     if (dashboardData?.accountSummary?.withdrawalWallet && !walletAddress) {
       setWalletAddress(dashboardData.accountSummary.withdrawalWallet);
     }
-  }, [dashboardData]);
+  }, [dashboardData, walletAddress]);
 
   return (
     <div>

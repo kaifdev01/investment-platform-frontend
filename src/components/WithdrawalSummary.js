@@ -8,7 +8,7 @@ const WithdrawalSummary = () => {
   const [investments, setInvestments] = useState([]);
   const [walletAddress, setWalletAddress] = useState('');
   const [showWithdrawAll, setShowWithdrawAll] = useState(false);
-  const [dashboardData, setDashboardData] = useState(null);
+  const [, setDashboardData] = useState(null);
 
   useEffect(() => {
     const fetchWithdrawalData = async () => {
