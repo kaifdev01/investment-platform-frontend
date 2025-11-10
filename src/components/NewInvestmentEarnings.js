@@ -81,6 +81,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const requestWithdrawal = async (investmentId) => {
     if (!walletAddress) {
       toast.error('Please enter your wallet address');

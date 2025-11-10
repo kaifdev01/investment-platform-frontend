@@ -49,7 +49,7 @@ const ProfileSection = ({ user, setUser }) => {
 
       // Admin can update email
       if (user.isAdmin && formData.email !== user.email) {
-        const emailResponse = await axios.put(`${API_URL}/user/admin/update-email`, 
+        await axios.put(`${API_URL}/user/admin/update-email`, 
           { newEmail: formData.email },
           { headers: { Authorization: `Bearer ${token}` } }
         );
