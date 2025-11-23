@@ -21,6 +21,7 @@ import AdminSettings from './AdminSettings';
 import BlockedUser from './BlockedUser';
 // eslint-disable-next-line no-unused-vars
 import WithdrawalSummary from './WithdrawalSummary';
+import ScoreSection from './ScoreSection';
 import { API_URL } from '../utils/api';
 
 const Dashboard = ({ user, setUser }) => {
@@ -244,7 +245,7 @@ const Dashboard = ({ user, setUser }) => {
 
           <div style={{ background: 'rgba(255, 255, 255, 0.95)', borderRadius: '20px', marginBottom: '20px' }}>
             <div className="dashboard-nav-tabs admin-tabs" style={{ display: 'flex', borderBottom: '1px solid #e1e5e9' }}>
-              {(user?.isAdmin ? ['admin', 'analytics', 'users', 'deposits', 'withdrawals', 'referrals'] : ['dashboard', 'deposit', 'tiers', 'investments', 'referrals']).map(tab => (
+              {(user?.isAdmin ? ['admin', 'analytics', 'users', 'deposits', 'withdrawals', 'referrals'] : ['dashboard', 'deposit', 'tiers', 'investments', 'score', 'referrals']).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -327,6 +328,10 @@ const Dashboard = ({ user, setUser }) => {
                           <h3 style={{ color: '#333', margin: '0 0 10px 0' }}>Referral Rewards</h3>
                           <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#17a2b8', margin: 0 }}>${dashboardData.accountSummary.referralRewards.toFixed(2)}</p>
                         </div>
+                        <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '20px', borderRadius: '15px', textAlign: 'center', color: 'white' }}>
+                          <h3 style={{ color: 'white', margin: '0 0 10px 0' }}>Activity Score</h3>
+                          <p style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{dashboardData.accountSummary.score || 50}</p>
+                        </div>
                       </div>
                     );
                   })()}
@@ -381,6 +386,10 @@ const Dashboard = ({ user, setUser }) => {
                   dashboardData={dashboardData}
                   fetchDashboard={fetchDashboard}
                 />
+              )}
+
+              {activeTab === 'score' && (
+                <ScoreSection dashboardData={dashboardData} />
               )}
 
               {activeTab === 'deposit' && (

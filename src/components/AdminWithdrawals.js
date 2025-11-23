@@ -5,12 +5,13 @@ import { API_URL } from '../utils/api';
 import '../styles/responsive.css';
 
 const AdminWithdrawals = () => {
-  const [withdrawals, setWithdrawals] = useState([]);
+  const [groupedWithdrawals, setGroupedWithdrawals] = useState([]);
   const [allWithdrawals, setAllWithdrawals] = useState([]);
   const [activeTab, setActiveTab] = useState('pending');
   const [txHash, setTxHash] = useState('');
   const [notes, setNotes] = useState('');
-  const [selectedWithdrawal, setSelectedWithdrawal] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [expandedUser, setExpandedUser] = useState(null);
 
   const fetchWithdrawals = async () => {
     try {
@@ -23,7 +24,7 @@ const AdminWithdrawals = () => {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
-      setWithdrawals(pendingResponse.data.withdrawals || []);
+      setGroupedWithdrawals(pendingResponse.data.groupedWithdrawals || []);
       setAllWithdrawals(allResponse.data.withdrawals || []);
     } catch (error) {
       console.error('Failed to fetch withdrawals');
@@ -31,7 +32,7 @@ const AdminWithdrawals = () => {
     }
   };
 
-  const approveWithdrawal = async (withdrawalId) => {
+  const approveUserWithdrawals = async (userId) => {
     if (!txHash) {
       toast.error('Please enter transaction hash');
       return;
@@ -39,39 +40,39 @@ const AdminWithdrawals = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`${API_URL}/withdrawal/admin/approve`, 
-        { withdrawalId, txHash, notes },
+      const response = await axios.post(`${API_URL}/withdrawal/admin/approve-user`, 
+        { userId, txHash, notes },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success('Withdrawal approved successfully');
+      toast.success(response.data.message);
       setTxHash('');
       setNotes('');
-      setSelectedWithdrawal(null);
+      setSelectedUser(null);
       fetchWithdrawals();
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to approve withdrawal');
+      toast.error(error.response?.data?.error || 'Failed to approve withdrawals');
     }
   };
 
-  const rejectWithdrawal = async (withdrawalId) => {
+  const rejectUserWithdrawals = async (userId) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`${API_URL}/withdrawal/admin/reject`, 
-        { withdrawalId, notes },
+      const response = await axios.post(`${API_URL}/withdrawal/admin/reject-user`, 
+        { userId, notes },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success('Withdrawal rejected');
+      toast.success(response.data.message);
       setNotes('');
-      setSelectedWithdrawal(null);
+      setSelectedUser(null);
       fetchWithdrawals();
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to reject withdrawal');
+      toast.error(error.response?.data?.error || 'Failed to reject withdrawals');
     }
   };
 
   useEffect(() => {
     fetchWithdrawals();
-    const interval = setInterval(fetchWithdrawals, 30000); // Refresh every 30 seconds
+    const interval = setInterval(fetchWithdrawals, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -83,8 +84,6 @@ const AdminWithdrawals = () => {
       default: return '#6c757d';
     }
   };
-
-  const currentWithdrawals = activeTab === 'pending' ? withdrawals : allWithdrawals;
 
   return (
     <div>
@@ -105,7 +104,7 @@ const AdminWithdrawals = () => {
                 borderRadius: activeTab === tab ? '10px 10px 0 0' : '0'
               }}
             >
-              {tab === 'pending' ? `Pending (${withdrawals.length})` : `History (${allWithdrawals.length})`}
+              {tab === 'pending' ? `Pending (${groupedWithdrawals.length} users)` : `History (${allWithdrawals.length})`}
             </button>
           ))}
         </div>
@@ -113,201 +112,290 @@ const AdminWithdrawals = () => {
           <h3 style={{ color: '#333', margin: 0 }}>
             {activeTab === 'pending' ? 'Pending Withdrawals' : 'Withdrawal History'}
           </h3>
-        <button
-          onClick={fetchWithdrawals}
-          style={{
-            background: '#667eea',
-            color: 'white',
-            border: 'none',
-            padding: '8px 16px',
-            borderRadius: '20px',
-            cursor: 'pointer',
-            fontSize: '14px'
-          }}
-        >
-          🔄 Refresh
-        </button>
+          <button
+            onClick={fetchWithdrawals}
+            style={{
+              background: '#667eea',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            🔄 Refresh
+          </button>
         </div>
       </div>
 
-      {currentWithdrawals.length > 0 ? (
-        <div style={{ display: 'grid', gap: '20px' }}>
-          {currentWithdrawals.map((withdrawal) => (
-            <div key={withdrawal._id} style={{
-              background: '#f8f9fa',
-              padding: '20px',
-              borderRadius: '10px',
-              border: `2px solid ${getStatusColor(withdrawal.status)}`
-            }}>
-              <div className="withdrawal-box" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                {/* User Info */}
-                <div className="withdrawal-user-info">
-                  <h4 style={{ color: '#333', marginBottom: '10px' }}>User Information</h4>
-                  <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>
-                    {withdrawal.userId?.firstName || 'N/A'} {withdrawal.userId?.lastName || ''}
-                  </p>
-                  <p style={{ margin: '0 0 5px 0', color: '#666' }}>
-                    {withdrawal.userId?.email || 'N/A'}
-                  </p>
-                  <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>
-                    Requested: {new Date(withdrawal.requestedAt).toLocaleString()}
-                  </p>
-                  <p style={{ 
-                    margin: '0 0 5px 0', 
-                    fontSize: '12px', 
-                    fontWeight: 'bold',
-                    color: getStatusColor(withdrawal.status)
-                  }}>
-                    Status: {withdrawal.status.toUpperCase()}
-                  </p>
-                </div>
+      {activeTab === 'pending' ? (
+        groupedWithdrawals.length > 0 ? (
+          <div style={{ display: 'grid', gap: '20px' }}>
+            {groupedWithdrawals.map((userGroup) => (
+              <div key={userGroup.user._id} style={{
+                background: '#f8f9fa',
+                padding: '20px',
+                borderRadius: '10px',
+                border: '2px solid #ffc107'
+              }}>
+                <div className="withdrawal-box" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                  <div className="withdrawal-user-info">
+                    <h4 style={{ color: '#333', marginBottom: '10px' }}>User Information</h4>
+                    <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>
+                      {userGroup.user.firstName} {userGroup.user.lastName}
+                    </p>
+                    <p style={{ margin: '0 0 5px 0', color: '#666' }}>
+                      {userGroup.user.email}
+                    </p>
+                    <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>
+                      Earliest Request: {new Date(userGroup.earliestRequest).toLocaleString()}
+                    </p>
+                    <p style={{ margin: '0 0 5px 0', fontSize: '12px', fontWeight: 'bold', color: '#ffc107' }}>
+                      Status: PENDING ({userGroup.count} withdrawals)
+                    </p>
+                  </div>
 
-                {/* Withdrawal Info */}
-                <div className="withdrawal-amount-info">
-                  <h4 style={{ color: '#333', marginBottom: '10px' }}>Withdrawal Details</h4>
-                  <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#28a745', fontSize: '18px' }}>
-                    Gross: ${withdrawal.amount.toFixed(2)} USDC
-                  </p>
-                  {withdrawal.feeAmount > 0 ? (
-                    <>
-                      <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#dc3545' }}>
-                        Fee (15%): ${withdrawal.feeAmount.toFixed(2)} USDC
-                      </p>
+                  <div className="withdrawal-amount-info">
+                    <h4 style={{ color: '#333', marginBottom: '10px' }}>Combined Withdrawal Details</h4>
+                    <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#28a745', fontSize: '18px' }}>
+                      Total Gross: ${userGroup.totalGrossAmount.toFixed(2)} USDC
+                    </p>
+                    {userGroup.totalFeeAmount > 0 ? (
+                      <>
+                        <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#dc3545' }}>
+                          Total Fee (15%): ${userGroup.totalFeeAmount.toFixed(2)} USDC
+                        </p>
+                        <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#007bff', fontSize: '16px' }}>
+                          Total Net: ${userGroup.totalNetAmount.toFixed(2)} USDC
+                        </p>
+                      </>
+                    ) : (
                       <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#007bff', fontSize: '16px' }}>
-                        Net Amount: ${withdrawal.netAmount.toFixed(2)} USDC
+                        Total Net: ${userGroup.totalNetAmount.toFixed(2)} USDC (No Fee)
                       </p>
-                    </>
-                  ) : (
-                    <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#007bff', fontSize: '16px' }}>
-                      Net Amount: ${withdrawal.netAmount.toFixed(2)} USDC (No Fee)
+                    )}
+                    <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#666' }}>
+                      Number of Withdrawals: {userGroup.count}
                     </p>
-                  )}
-                  <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#666' }}>
-                    Investment: {withdrawal.investmentId?.tier || 'N/A'}
-                  </p>
-                  <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#666', wordBreak: 'break-all' }}>
-                    Wallet: {withdrawal.walletAddress}
-                  </p>
-                  {withdrawal.processedAt && (
-                    <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>
-                      Processed: {new Date(withdrawal.processedAt).toLocaleString()}
+                    <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#666', wordBreak: 'break-all' }}>
+                      Wallet: {userGroup.withdrawals[0]?.walletAddress}
                     </p>
-                  )}
-                  {withdrawal.txHash && (
-                    <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666', wordBreak: 'break-all' }}>
-                      TX: {withdrawal.txHash}
-                    </p>
-                  )}
-                  {withdrawal.notes && (
-                    <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>
-                      Notes: {withdrawal.notes}
-                    </p>
-                  )}
+                    <button
+                      onClick={() => setExpandedUser(expandedUser === userGroup.user._id ? null : userGroup.user._id)}
+                      style={{
+                        background: '#17a2b8',
+                        color: 'white',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      {expandedUser === userGroup.user._id ? 'Hide Details' : 'Show Individual Withdrawals'}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Action Buttons */}
-              {activeTab === 'pending' && (
-              <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-                {selectedWithdrawal === withdrawal._id ? (
-                  <div style={{ width: '100%' }}>
-                    <input
-                      type="text"
-                      placeholder="Transaction Hash (for approval)"
-                      value={txHash}
-                      onChange={(e) => setTxHash(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        marginBottom: '10px'
-                      }}
-                    />
-                    <textarea
-                      placeholder="Notes (optional)"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        marginBottom: '10px',
-                        minHeight: '60px'
-                      }}
-                    />
-                    <div style={{ display: 'flex', gap: '10px' }}>
+                {expandedUser === userGroup.user._id && (
+                  <div style={{ marginTop: '15px', padding: '15px', background: '#e9ecef', borderRadius: '8px' }}>
+                    <h5 style={{ color: '#333', marginBottom: '10px' }}>Individual Withdrawals:</h5>
+                    {userGroup.withdrawals.map((withdrawal) => (
+                      <div key={withdrawal._id} style={{ 
+                        background: 'white', 
+                        padding: '10px', 
+                        borderRadius: '6px', 
+                        marginBottom: '8px',
+                        fontSize: '12px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <p style={{ margin: '0 0 3px 0', fontWeight: 'bold' }}>
+                              ${(withdrawal.grossAmount || withdrawal.amount || 0).toFixed(2)} USDC
+                            </p>
+                            <p style={{ margin: '0 0 3px 0', fontSize: '11px', color: '#666' }}>
+                              Cycle {withdrawal.cycleNumber || 'N/A'} • {new Date(withdrawal.createdAt || withdrawal.requestedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            {(withdrawal.feeAmount || 0) > 0 && (
+                              <p style={{ margin: '0 0 3px 0', fontSize: '11px', color: '#dc3545' }}>
+                                Fee: ${(withdrawal.feeAmount || 0).toFixed(2)}
+                              </p>
+                            )}
+                            <p style={{ margin: '0', fontWeight: 'bold', color: '#007bff' }}>
+                              Net: ${(withdrawal.netAmount || withdrawal.amount || 0).toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ marginTop: '15px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {selectedUser === userGroup.user._id ? (
+                    <>
+                      <input
+                        type="text"
+                        placeholder="Transaction Hash"
+                        value={txHash}
+                        onChange={(e) => setTxHash(e.target.value)}
+                        style={{
+                          flex: '1',
+                          minWidth: '200px',
+                          padding: '8px',
+                          border: '1px solid #ddd',
+                          borderRadius: '4px',
+                          fontSize: '14px'
+                        }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Notes (optional)"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        style={{
+                          flex: '1',
+                          minWidth: '150px',
+                          padding: '8px',
+                          border: '1px solid #ddd',
+                          borderRadius: '4px',
+                          fontSize: '14px'
+                        }}
+                      />
                       <button
-                        onClick={() => approveWithdrawal(withdrawal._id)}
+                        onClick={() => approveUserWithdrawals(userGroup.user._id)}
                         style={{
                           background: '#28a745',
                           color: 'white',
                           border: 'none',
-                          padding: '10px 20px',
-                          borderRadius: '8px',
+                          padding: '8px 16px',
+                          borderRadius: '4px',
                           cursor: 'pointer',
-                          fontWeight: 'bold',
-                          flex: 1
+                          fontSize: '14px'
                         }}
                       >
-                        ✅ Approve & Send
+                        ✓ Approve All
                       </button>
                       <button
-                        onClick={() => rejectWithdrawal(withdrawal._id)}
+                        onClick={() => rejectUserWithdrawals(userGroup.user._id)}
                         style={{
                           background: '#dc3545',
                           color: 'white',
                           border: 'none',
-                          padding: '10px 20px',
-                          borderRadius: '8px',
+                          padding: '8px 16px',
+                          borderRadius: '4px',
                           cursor: 'pointer',
-                          fontWeight: 'bold',
-                          flex: 1
+                          fontSize: '14px'
                         }}
                       >
-                        ❌ Reject
+                        ✗ Reject All
                       </button>
                       <button
-                        onClick={() => setSelectedWithdrawal(null)}
+                        onClick={() => setSelectedUser(null)}
                         style={{
                           background: '#6c757d',
                           color: 'white',
                           border: 'none',
-                          padding: '10px 20px',
-                          borderRadius: '8px',
-                          cursor: 'pointer'
+                          padding: '8px 16px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '14px'
                         }}
                       >
                         Cancel
                       </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setSelectedWithdrawal(withdrawal._id)}
-                    style={{
-                      background: '#17a2b8',
-                      color: 'white',
-                      border: 'none',
-                      padding: '10px 20px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    💰 Process Withdrawal
-                  </button>
-                )}
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setSelectedUser(userGroup.user._id)}
+                      style={{
+                        background: '#667eea',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '20px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Process All Withdrawals (${userGroup.totalNetAmount.toFixed(2)})
+                    </button>
+                  )}
+                </div>
               </div>
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+            <p>No pending withdrawals</p>
+          </div>
+        )
       ) : (
-        <p style={{ textAlign: 'center', color: '#666', padding: '40px' }}>
-          {activeTab === 'pending' ? 'No pending withdrawals' : 'No withdrawal history'}
-        </p>
+        <div style={{ display: 'grid', gap: '15px' }}>
+          {allWithdrawals.length > 0 ? (
+            allWithdrawals.map((withdrawal) => (
+              <div key={withdrawal._id} style={{
+                background: 'white',
+                padding: '20px',
+                borderRadius: '10px',
+                border: `2px solid ${getStatusColor(withdrawal.status)}`
+              }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
+                  <div>
+                    <h4 style={{ color: '#333', marginBottom: '10px' }}>User</h4>
+                    <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>
+                      {withdrawal.user.firstName} {withdrawal.user.lastName}
+                    </p>
+                    <p style={{ margin: '0 0 5px 0', color: '#666' }}>
+                      {withdrawal.user.email}
+                    </p>
+                  </div>
+                  <div>
+                    <h4 style={{ color: '#333', marginBottom: '10px' }}>Amount</h4>
+                    <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#28a745' }}>
+                      ${withdrawal.grossAmount.toFixed(2)} USDC
+                    </p>
+                    {withdrawal.feeAmount > 0 && (
+                      <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#dc3545' }}>
+                        Fee: ${withdrawal.feeAmount.toFixed(2)}
+                      </p>
+                    )}
+                    <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#007bff' }}>
+                      Net: ${withdrawal.netAmount.toFixed(2)} USDC
+                    </p>
+                  </div>
+                  <div>
+                    <h4 style={{ color: '#333', marginBottom: '10px' }}>Status</h4>
+                    <p style={{ 
+                      margin: '0 0 5px 0', 
+                      fontWeight: 'bold', 
+                      color: getStatusColor(withdrawal.status),
+                      textTransform: 'uppercase'
+                    }}>
+                      {withdrawal.status}
+                    </p>
+                    <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>
+                      {new Date(withdrawal.createdAt).toLocaleString()}
+                    </p>
+                    {withdrawal.txHash && (
+                      <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666', wordBreak: 'break-all' }}>
+                        TX: {withdrawal.txHash}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              <p>No withdrawal history</p>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

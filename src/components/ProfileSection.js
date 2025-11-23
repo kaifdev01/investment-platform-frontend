@@ -11,17 +11,26 @@ const ProfileSection = ({ user, setUser }) => {
     email: user.email,
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    currentWithdrawalPassword: '',
+    newWithdrawalPassword: '',
+    confirmWithdrawalPassword: ''
   });
   const [showPassword, setShowPassword] = useState({
     currentPassword: false,
     newPassword: false,
-    confirmPassword: false
+    confirmPassword: false,
+    currentWithdrawalPassword: false,
+    newWithdrawalPassword: false,
+    confirmWithdrawalPassword: false
   });
+
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+
 
   const togglePasswordVisibility = (field) => {
     setShowPassword(prev => ({ ...prev, [field]: !prev[field] }));
@@ -37,6 +46,16 @@ const ProfileSection = ({ user, setUser }) => {
 
     if (formData.newPassword && formData.newPassword.length < 6) {
       toast.error('New password must be at least 6 characters');
+      return;
+    }
+
+    if (formData.newWithdrawalPassword && formData.newWithdrawalPassword !== formData.confirmWithdrawalPassword) {
+      toast.error('New withdrawal passwords do not match');
+      return;
+    }
+
+    if (formData.newWithdrawalPassword && formData.newWithdrawalPassword.length < 6) {
+      toast.error('New withdrawal password must be at least 6 characters');
       return;
     }
 
@@ -60,6 +79,11 @@ const ProfileSection = ({ user, setUser }) => {
         updateData.newPassword = formData.newPassword;
       }
 
+      if (formData.newWithdrawalPassword) {
+        updateData.currentWithdrawalPassword = formData.currentWithdrawalPassword;
+        updateData.newWithdrawalPassword = formData.newWithdrawalPassword;
+      }
+
       const response = await axios.put(`${API_URL}/user/profile`, updateData, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -72,7 +96,10 @@ const ProfileSection = ({ user, setUser }) => {
         email: formData.email,
         currentPassword: '',
         newPassword: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        currentWithdrawalPassword: '',
+        newWithdrawalPassword: '',
+        confirmWithdrawalPassword: ''
       });
       
       // Update user object with new email if admin changed it
@@ -84,6 +111,8 @@ const ProfileSection = ({ user, setUser }) => {
       toast.error(error.response?.data?.error || 'Failed to update profile');
     }
   };
+
+
 
   const inputStyle = {
     width: '100%',
@@ -261,6 +290,94 @@ const ProfileSection = ({ user, setUser }) => {
             </button>
           </div>
 
+          <h4 style={{ color: '#333', marginBottom: '15px', marginTop: '30px' }}>Change Withdrawal Password (Optional)</h4>
+          
+
+
+          <div style={{ marginBottom: '15px', position: 'relative' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#666' }}>Current Withdrawal Password</label>
+            <input
+              type={showPassword.currentWithdrawalPassword ? 'text' : 'password'}
+              name="currentWithdrawalPassword"
+              value={formData.currentWithdrawalPassword}
+              onChange={handleChange}
+              style={inputStyle}
+            />
+            <button
+              type="button"
+              onClick={() => togglePasswordVisibility('currentWithdrawalPassword')}
+              style={{
+                position: 'absolute',
+                right: '15px',
+                top: '35px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '12px',
+                color: '#667eea',
+                fontWeight: 'bold'
+              }}
+            >
+              {showPassword.currentWithdrawalPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
+
+          <div style={{ marginBottom: '15px', position: 'relative' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#666' }}>New Withdrawal Password</label>
+            <input
+              type={showPassword.newWithdrawalPassword ? 'text' : 'password'}
+              name="newWithdrawalPassword"
+              value={formData.newWithdrawalPassword}
+              onChange={handleChange}
+              style={inputStyle}
+            />
+            <button
+              type="button"
+              onClick={() => togglePasswordVisibility('newWithdrawalPassword')}
+              style={{
+                position: 'absolute',
+                right: '15px',
+                top: '35px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '12px',
+                color: '#667eea',
+                fontWeight: 'bold'
+              }}
+            >
+              {showPassword.newWithdrawalPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
+
+          <div style={{ marginBottom: '20px', position: 'relative' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#666' }}>Confirm New Withdrawal Password</label>
+            <input
+              type={showPassword.confirmWithdrawalPassword ? 'text' : 'password'}
+              name="confirmWithdrawalPassword"
+              value={formData.confirmWithdrawalPassword}
+              onChange={handleChange}
+              style={inputStyle}
+            />
+            <button
+              type="button"
+              onClick={() => togglePasswordVisibility('confirmWithdrawalPassword')}
+              style={{
+                position: 'absolute',
+                right: '15px',
+                top: '35px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '12px',
+                color: '#667eea',
+                fontWeight: 'bold'
+              }}
+            >
+              {showPassword.confirmWithdrawalPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
+
           <div style={{ display: 'flex', gap: '15px' }}>
             <button
               type="submit"
@@ -287,7 +404,10 @@ const ProfileSection = ({ user, setUser }) => {
                   email: user.email,
                   currentPassword: '',
                   newPassword: '',
-                  confirmPassword: ''
+                  confirmPassword: '',
+                  currentWithdrawalPassword: '',
+                  newWithdrawalPassword: '',
+                  confirmWithdrawalPassword: ''
                 });
               }}
               style={{

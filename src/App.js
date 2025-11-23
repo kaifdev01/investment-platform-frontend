@@ -7,6 +7,8 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import Dashboard from './components/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import ForgotPasswordPage from './components/ForgotPasswordPage';
+import LandingPage from './components/LandingPage';
 
 const API_URL = 'https://investment-platform-backend.vercel.app/api';
 
@@ -73,14 +75,15 @@ function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login setUser={setUser} />} />
         <Route path="/signup" element={<Signup setUser={setUser} />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/dashboard" element={
           <ProtectedRoute user={user}>
             <Dashboard user={user} setUser={setUser} />
           </ProtectedRoute>
         } />
-        <Route path="/" element={<Navigate to={user ? "/dashboard" : "/signup"} replace />} />
       </Routes>
       <ToastContainer position="top-right" autoClose={3000} />
     </Router>
