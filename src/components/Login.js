@@ -4,11 +4,13 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import AnimatedBackground from './AnimatedBackground';
 import Header from './Header';
+import ForgotPassword from './ForgotPassword';
 import { API_URL } from '../utils/api';
 
 const Login = ({ setUser }) => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -45,6 +47,10 @@ const Login = ({ setUser }) => {
     background: 'rgba(255, 255, 255, 0.9)',
     backdropFilter: 'blur(10px)'
   };
+
+  if (showForgotPassword) {
+    return <ForgotPassword onBackToLogin={() => setShowForgotPassword(false)} />;
+  }
 
   return (
     <div style={{ minHeight: '100vh', position: 'relative' }}>
@@ -131,7 +137,25 @@ const Login = ({ setUser }) => {
             </button>
           </form>
 
-          <p style={{ textAlign: 'center', marginTop: '25px', color: '#666' }}>
+          <div style={{ textAlign: 'center', marginTop: '20px' }}>
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#667eea',
+                cursor: 'pointer',
+                fontSize: '14px',
+                textDecoration: 'underline',
+                marginBottom: '15px'
+              }}
+            >
+              Forgot Password?
+            </button>
+          </div>
+
+          <p style={{ textAlign: 'center', color: '#666' }}>
             Don't have an account?
             <Link to="/signup" style={{ color: '#667eea', fontWeight: 'bold', textDecoration: 'none', marginLeft: '5px' }}>
               Sign Up

@@ -9,6 +9,12 @@ const UserManagement = () => {
   const [showAddBalance, setShowAddBalance] = useState(null);
   const [balanceAmount, setBalanceAmount] = useState('');
   const [balanceNote, setBalanceNote] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showUpdateScore, setShowUpdateScore] = useState(null);
+  const [scoreChange, setScoreChange] = useState('');
+  const [scoreNote, setScoreNote] = useState('');
 
   const fetchUsers = async () => {
     try {
@@ -49,7 +55,7 @@ const UserManagement = () => {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       alert(response.data.message);
       setShowAddBalance(null);
       setBalanceAmount('');
@@ -57,6 +63,78 @@ const UserManagement = () => {
       fetchUsers();
     } catch (error) {
       alert(error.response?.data?.error || 'Failed to update balance');
+    }
+  };
+
+  const resetUserPassword = async (userId) => {
+    if (!newPassword || !confirmPassword) {
+      alert('Please fill in both password fields');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      alert('Password must be at least 6 characters');
+      return;
+    }
+
+    if (!window.confirm('Are you sure you want to reset this user\'s password?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API_URL}/admin/reset-user-password`, {
+        userId,
+        newPassword
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      alert(response.data.message);
+      setShowResetPassword(null);
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to reset password');
+    }
+  };
+
+  const updateUserScore = async (userId) => {
+    if (!scoreChange || isNaN(scoreChange)) {
+      alert('Please enter a valid score change (positive or negative number)');
+      return;
+    }
+
+    const change = parseInt(scoreChange);
+    const action = change >= 0 ? 'increase' : 'decrease';
+    const absChange = Math.abs(change);
+
+    if (!window.confirm(`Are you sure you want to ${action} this user's score by ${absChange} points?`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API_URL}/admin/update-user-score`, {
+        userId,
+        scoreChange: change,
+        note: scoreNote || `Admin ${action} by ${absChange} points`
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      alert(response.data.message);
+      setShowUpdateScore(null);
+      setScoreChange('');
+      setScoreNote('');
+      fetchUsers();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to update score');
     }
   };
 
@@ -132,6 +210,9 @@ const UserManagement = () => {
                     <p style={{ margin: '0 0 5px 0', fontSize: '14px' }}>
                       💳 Total Deposits: <strong>${user.totalDeposits.toFixed(2)}</strong>
                     </p>
+                    <p style={{ margin: '0 0 5px 0', fontSize: '14px' }}>
+                      🏆 Activity Score: <strong>{user.score} points</strong>
+                    </p>
                   </div>
                 </div>
               </div>
@@ -166,6 +247,34 @@ const UserManagement = () => {
                 >
                   💰 Update Balance
                 </button>
+                <button
+                  onClick={() => setShowResetPassword(showResetPassword === user._id ? null : user._id)}
+                  style={{
+                    background: '#ffc107',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  🔑 Reset Password
+                </button>
+                <button
+                  onClick={() => setShowUpdateScore(showUpdateScore === user._id ? null : user._id)}
+                  style={{
+                    background: '#17a2b8',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  🏆 Update Score
+                </button>
                 {!user.isAdmin && (
                   <button
                     onClick={() => toggleBlockUser(user._id)}
@@ -185,6 +294,193 @@ const UserManagement = () => {
               </div>
             </div>
 
+            {/* Update Score Form */}
+            {showUpdateScore === user._id && (
+              <div style={{ marginTop: '20px', padding: '15px', background: '#e8f4fd', borderRadius: '8px', border: '2px solid #17a2b8' }}>
+                <h5 style={{ color: '#0c5460', margin: '0 0 10px 0' }}>
+                  🏆 Update Score for {user.firstName} {user.lastName}
+                </h5>
+                <p style={{ color: '#0c5460', fontSize: '12px', margin: '0 0 10px 0' }}>
+                  Current Score: <strong>{user.score || 50} points</strong>
+                </p>
+                <div style={{
+                  background: '#d1ecf1',
+                  border: '1px solid #bee5eb',
+                  borderRadius: '6px',
+                  padding: '12px',
+                  marginBottom: '15px'
+                }}>
+                  <p style={{
+                    color: '#0c5460',
+                    margin: 0,
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                  }}>
+                    ℹ️ Enter positive numbers to increase score, negative numbers to decrease score.
+                  </p>
+                </div>
+                <div style={{ display: 'grid', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Score Change</label>
+                    <input
+                      type="number"
+                      value={scoreChange}
+                      onChange={(e) => setScoreChange(e.target.value)}
+                      placeholder="Enter +/- points (e.g., +10 or -5)"
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        border: '1px solid #ddd',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Note (Optional)</label>
+                    <input
+                      type="text"
+                      value={scoreNote}
+                      onChange={(e) => setScoreNote(e.target.value)}
+                      placeholder="Reason for score change"
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        border: '1px solid #ddd',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                    <button
+                      onClick={() => updateUserScore(user._id)}
+                      style={{
+                        background: '#17a2b8',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      ✅ Update Score
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowUpdateScore(null);
+                        setScoreChange('');
+                        setScoreNote('');
+                      }}
+                      style={{
+                        background: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ❌ Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Reset Password Form */}
+            {showResetPassword === user._id && (
+              <div style={{ marginTop: '20px', padding: '15px', background: '#fff3cd', borderRadius: '8px', border: '2px solid #ffc107' }}>
+                <h5 style={{ color: '#856404', margin: '0 0 10px 0' }}>
+                  🔑 Reset Password for {user.firstName} {user.lastName}
+                </h5>
+                <div style={{
+                  background: '#f8d7da',
+                  border: '1px solid #f5c6cb',
+                  borderRadius: '6px',
+                  padding: '12px',
+                  marginBottom: '15px'
+                }}>
+                  <p style={{
+                    color: '#721c24',
+                    margin: 0,
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                  }}>
+                    ⚠️ WARNING: This will permanently change the user's password. The user will need to use the new password to login.
+                  </p>
+                </div>
+                <div style={{ display: 'grid', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>New Password</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password (min 6 characters)"
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        border: '1px solid #ddd',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Confirm Password</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        border: '1px solid #ddd',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                    <button
+                      onClick={() => resetUserPassword(user._id)}
+                      style={{
+                        background: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      ✅ Reset Password
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowResetPassword(null);
+                        setNewPassword('');
+                        setConfirmPassword('');
+                      }}
+                      style={{
+                        background: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ❌ Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Add Balance Form */}
             {showAddBalance === user._id && (
               <div style={{ marginTop: '20px', padding: '15px', background: '#e8f5e8', borderRadius: '8px', border: '2px solid #28a745' }}>
@@ -194,18 +490,18 @@ const UserManagement = () => {
                 <p style={{ color: '#666', fontSize: '12px', margin: '0 0 10px 0' }}>
                   Current Balance: <strong>${user.balance.toFixed(2)}</strong>
                 </p>
-                <div style={{ 
-                  background: '#fff3cd', 
-                  border: '1px solid #ffeaa7', 
-                  borderRadius: '6px', 
-                  padding: '12px', 
-                  marginBottom: '15px' 
+                <div style={{
+                  background: '#fff3cd',
+                  border: '1px solid #ffeaa7',
+                  borderRadius: '6px',
+                  padding: '12px',
+                  marginBottom: '15px'
                 }}>
-                  <p style={{ 
-                    color: '#856404', 
-                    margin: 0, 
-                    fontSize: '14px', 
-                    fontWeight: 'bold' 
+                  <p style={{
+                    color: '#856404',
+                    margin: 0,
+                    fontSize: '14px',
+                    fontWeight: 'bold'
                   }}>
                     ⚠️ WARNING: This will set the user's balance to the exact amount entered. This action cannot be undone.
                   </p>
