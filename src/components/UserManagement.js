@@ -5,6 +5,8 @@ import '../styles/responsive.css';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [showAddBalance, setShowAddBalance] = useState(null);
   const [balanceAmount, setBalanceAmount] = useState('');
@@ -23,6 +25,7 @@ const UserManagement = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUsers(response.data.users);
+      setFilteredUsers(response.data.users);
     } catch (error) {
       console.error('Failed to fetch users');
     }
@@ -138,16 +141,52 @@ const UserManagement = () => {
     }
   };
 
+  const handleSearch = (term) => {
+    setSearchTerm(term);
+    if (!term.trim()) {
+      setFilteredUsers(users);
+    } else {
+      const filtered = users.filter(user => 
+        `${user.firstName} ${user.lastName}`.toLowerCase().includes(term.toLowerCase()) ||
+        user.email.toLowerCase().includes(term.toLowerCase())
+      );
+      setFilteredUsers(filtered);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
   }, []);
 
+  useEffect(() => {
+    handleSearch(searchTerm);
+  }, [users]);
+
   return (
     <div>
-      <h3 style={{ color: '#333', marginBottom: '20px' }}>User Management ({users.length} users)</h3>
+      <h3 style={{ color: '#333', marginBottom: '20px' }}>User Management ({filteredUsers.length} of {users.length} users)</h3>
+      
+      {/* Search Bar */}
+      <div style={{ marginBottom: '20px' }}>
+        <input
+          type="text"
+          placeholder="🔍 Search users by name or email..."
+          value={searchTerm}
+          onChange={(e) => handleSearch(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            border: '2px solid #e1e5e9',
+            borderRadius: '10px',
+            fontSize: '16px',
+            outline: 'none',
+            background: '#f8f9fa'
+          }}
+        />
+      </div>
 
       <div style={{ display: 'grid', gap: '15px' }}>
-        {users.map((user) => (
+        {filteredUsers.map((user) => (
           <div key={user._id} style={{
             background: 'white',
             padding: '20px',
@@ -634,6 +673,26 @@ const UserManagement = () => {
         ))}
       </div>
 
+      {filteredUsers.length === 0 && users.length > 0 && (
+        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+          <p>No users found matching "{searchTerm}"</p>
+          <button
+            onClick={() => handleSearch('')}
+            style={{
+              background: '#667eea',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            Clear Search
+          </button>
+        </div>
+      )}
+      
       {users.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
           No users found
