@@ -24,10 +24,66 @@ const ProfileSection = ({ user, setUser }) => {
     newWithdrawalPassword: false,
     confirmWithdrawalPassword: false
   });
+  const [showWithdrawalReset, setShowWithdrawalReset] = useState(false);
+  const [withdrawalResetData, setWithdrawalResetData] = useState({
+    email: user.email,
+    resetCode: '',
+    newWithdrawalPassword: '',
+    confirmWithdrawalPassword: ''
+  });
 
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleWithdrawalResetChange = (e) => {
+    setWithdrawalResetData({ ...withdrawalResetData, [e.target.name]: e.target.value });
+  };
+
+  const handleForgotWithdrawalPassword = async () => {
+    try {
+      const response = await axios.post(`${API_URL}/forgot-withdrawal-password`, {
+        email: user.email
+      });
+      toast.success(response.data.message);
+      setShowWithdrawalReset(true);
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to send reset code');
+    }
+  };
+
+  const handleResetWithdrawalPassword = async (e) => {
+    e.preventDefault();
+
+    if (!withdrawalResetData.resetCode || !withdrawalResetData.newWithdrawalPassword || !withdrawalResetData.confirmWithdrawalPassword) {
+      toast.error('All fields are required');
+      return;
+    }
+
+    if (withdrawalResetData.newWithdrawalPassword !== withdrawalResetData.confirmWithdrawalPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    if (withdrawalResetData.newWithdrawalPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API_URL}/reset-withdrawal-password`, withdrawalResetData);
+      toast.success(response.data.message);
+      setShowWithdrawalReset(false);
+      setWithdrawalResetData({
+        email: user.email,
+        resetCode: '',
+        newWithdrawalPassword: '',
+        confirmWithdrawalPassword: ''
+      });
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to reset withdrawal password');
+    }
   };
 
 
@@ -68,7 +124,7 @@ const ProfileSection = ({ user, setUser }) => {
 
       // Admin can update email
       if (user.isAdmin && formData.email !== user.email) {
-        await axios.put(`${API_URL}/user/admin/update-email`, 
+        await axios.put(`${API_URL}/user/admin/update-email`,
           { newEmail: formData.email },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -101,7 +157,7 @@ const ProfileSection = ({ user, setUser }) => {
         newWithdrawalPassword: '',
         confirmWithdrawalPassword: ''
       });
-      
+
       // Update user object with new email if admin changed it
       if (user.isAdmin && formData.email !== user.email) {
         setUser({ ...response.data.user, email: formData.email });
@@ -291,7 +347,27 @@ const ProfileSection = ({ user, setUser }) => {
           </div>
 
           <h4 style={{ color: '#333', marginBottom: '15px', marginTop: '30px' }}>Change Withdrawal Password (Optional)</h4>
-          
+
+          <div style={{ marginBottom: '15px', padding: '12px', background: '#e8f4fd', borderRadius: '8px', border: '1px solid #bee5eb' }}>
+            <p style={{ margin: '0 0 10px 0', color: '#0c5460', fontSize: '14px', fontWeight: 'bold' }}>Forgot your withdrawal password?</p>
+            <button
+              type="button"
+              onClick={handleForgotWithdrawalPassword}
+              style={{
+                background: '#17a2b8',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}
+            >
+              Reset via Email
+            </button>
+          </div>
+
 
 
           <div style={{ marginBottom: '15px', position: 'relative' }}>
@@ -425,6 +501,120 @@ const ProfileSection = ({ user, setUser }) => {
             </button>
           </div>
         </form>
+      )}
+
+      {/* Withdrawal Password Reset Modal */}
+      {showWithdrawalReset && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '30px',
+            borderRadius: '10px',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <h3 style={{ color: '#333', marginBottom: '20px' }}>Reset Withdrawal Password</h3>
+            <p style={{ color: '#666', marginBottom: '20px' }}>Enter the reset code sent to your email and your new withdrawal password.</p>
+
+            <form onSubmit={handleResetWithdrawalPassword}>
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', color: '#666' }}>Reset Code</label>
+                <input
+                  type="text"
+                  name="resetCode"
+                  value={withdrawalResetData.resetCode}
+                  onChange={handleWithdrawalResetChange}
+                  placeholder="Enter 6-digit code from email"
+                  style={inputStyle}
+                  required
+                />
+              </div>
+
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', color: '#666' }}>New Withdrawal Password</label>
+                <input
+                  type="password"
+                  name="newWithdrawalPassword"
+                  value={withdrawalResetData.newWithdrawalPassword}
+                  onChange={handleWithdrawalResetChange}
+                  placeholder="Enter new withdrawal password"
+                  style={inputStyle}
+                  required
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', color: '#666' }}>Confirm New Withdrawal Password</label>
+                <input
+                  type="password"
+                  name="confirmWithdrawalPassword"
+                  value={withdrawalResetData.confirmWithdrawalPassword}
+                  onChange={handleWithdrawalResetChange}
+                  placeholder="Confirm new withdrawal password"
+                  style={inputStyle}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '15px' }}>
+                <button
+                  type="submit"
+                  style={{
+                    background: '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    padding: '12px 24px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    flex: 1
+                  }}
+                >
+                  Reset Password
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowWithdrawalReset(false);
+                    setWithdrawalResetData({
+                      email: user.email,
+                      resetCode: '',
+                      newWithdrawalPassword: '',
+                      confirmWithdrawalPassword: ''
+                    });
+                  }}
+                  style={{
+                    background: '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    padding: '12px 24px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    flex: 1
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
