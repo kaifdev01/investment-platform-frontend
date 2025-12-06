@@ -348,24 +348,24 @@ const AdminWithdrawals = () => {
                   <div>
                     <h4 style={{ color: '#333', marginBottom: '10px' }}>User</h4>
                     <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>
-                      {withdrawal.user.firstName} {withdrawal.user.lastName}
+                      {withdrawal.userId?.firstName || 'N/A'} {withdrawal.userId?.lastName || ''}
                     </p>
                     <p style={{ margin: '0 0 5px 0', color: '#666' }}>
-                      {withdrawal.user.email}
+                      {withdrawal.userId?.email || 'N/A'}
                     </p>
                   </div>
                   <div>
                     <h4 style={{ color: '#333', marginBottom: '10px' }}>Amount</h4>
                     <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#28a745' }}>
-                      ${withdrawal.grossAmount.toFixed(2)} USDC
+                      ${(withdrawal.grossAmount || withdrawal.amount || 0).toFixed(2)} USDC
                     </p>
-                    {withdrawal.feeAmount > 0 && (
+                    {(withdrawal.feeAmount || 0) > 0 && (
                       <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#dc3545' }}>
-                        Fee: ${withdrawal.feeAmount.toFixed(2)}
+                        Fee: ${(withdrawal.feeAmount || 0).toFixed(2)}
                       </p>
                     )}
                     <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#007bff' }}>
-                      Net: ${withdrawal.netAmount.toFixed(2)} USDC
+                      Net: ${(withdrawal.netAmount || withdrawal.amount || 0).toFixed(2)} USDC
                     </p>
                   </div>
                   <div>
@@ -379,7 +379,7 @@ const AdminWithdrawals = () => {
                       {withdrawal.status}
                     </p>
                     <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>
-                      {new Date(withdrawal.createdAt).toLocaleString()}
+                      {new Date(withdrawal.createdAt || withdrawal.requestedAt).toLocaleString()}
                     </p>
                     {withdrawal.txHash && (
                       <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666', wordBreak: 'break-all' }}>
