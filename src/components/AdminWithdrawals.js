@@ -337,59 +337,135 @@ const AdminWithdrawals = () => {
       ) : (
         <div style={{ display: 'grid', gap: '15px' }}>
           {allWithdrawals.length > 0 ? (
-            allWithdrawals.map((withdrawal) => (
-              <div key={withdrawal._id} style={{
-                background: 'white',
-                padding: '20px',
-                borderRadius: '10px',
-                border: `2px solid ${getStatusColor(withdrawal.status)}`
-              }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
-                  <div>
-                    <h4 style={{ color: '#333', marginBottom: '10px' }}>User</h4>
-                    <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>
-                      {withdrawal.userId?.firstName || 'N/A'} {withdrawal.userId?.lastName || ''}
-                    </p>
-                    <p style={{ margin: '0 0 5px 0', color: '#666' }}>
-                      {withdrawal.userId?.email || 'N/A'}
-                    </p>
-                  </div>
-                  <div>
-                    <h4 style={{ color: '#333', marginBottom: '10px' }}>Amount</h4>
-                    <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#28a745' }}>
-                      ${(withdrawal.grossAmount || withdrawal.amount || 0).toFixed(2)} USDC
-                    </p>
-                    {(withdrawal.feeAmount || 0) > 0 && (
-                      <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#dc3545' }}>
-                        Fee: ${(withdrawal.feeAmount || 0).toFixed(2)}
+            (() => {
+              const grouped = allWithdrawals.reduce((acc, w) => {
+                const userId = w.userId?._id || w.userId;
+                if (!acc[userId]) {
+                  acc[userId] = {
+                    user: w.userId,
+                    withdrawals: [],
+                    totalGross: 0,
+                    totalFee: 0,
+                    totalNet: 0,
+                    status: w.status,
+                    latestDate: w.createdAt || w.requestedAt
+                  };
+                }
+                acc[userId].withdrawals.push(w);
+                acc[userId].totalGross += (w.grossAmount || w.amount || 0);
+                acc[userId].totalFee += (w.feeAmount || 0);
+                acc[userId].totalNet += (w.netAmount || w.amount || 0);
+                return acc;
+              }, {});
+              
+              return Object.values(grouped).map((group) => (
+                <div key={group.user?._id || Math.random()} style={{
+                  background: 'white',
+                  padding: '20px',
+                  borderRadius: '10px',
+                  border: `2px solid ${getStatusColor(group.status)}`
+                }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
+                    <div>
+                      <h4 style={{ color: '#333', marginBottom: '10px' }}>User</h4>
+                      <p style={{ margin: '0 0 5px 0', fontWeight: 'bold' }}>
+                        {group.user?.firstName || 'N/A'} {group.user?.lastName || ''}
                       </p>
-                    )}
-                    <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#007bff' }}>
-                      Net: ${(withdrawal.netAmount || withdrawal.amount || 0).toFixed(2)} USDC
-                    </p>
-                  </div>
-                  <div>
-                    <h4 style={{ color: '#333', marginBottom: '10px' }}>Status</h4>
-                    <p style={{ 
-                      margin: '0 0 5px 0', 
-                      fontWeight: 'bold', 
-                      color: getStatusColor(withdrawal.status),
-                      textTransform: 'uppercase'
-                    }}>
-                      {withdrawal.status}
-                    </p>
-                    <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>
-                      {new Date(withdrawal.createdAt || withdrawal.requestedAt).toLocaleString()}
-                    </p>
-                    {withdrawal.txHash && (
-                      <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666', wordBreak: 'break-all' }}>
-                        TX: {withdrawal.txHash}
+                      <p style={{ margin: '0 0 5px 0', color: '#666' }}>
+                        {group.user?.email || 'N/A'}
                       </p>
-                    )}
+                      <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>
+                        {group.withdrawals.length} withdrawal{group.withdrawals.length > 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 style={{ color: '#333', marginBottom: '10px' }}>Combined Amount</h4>
+                      <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#28a745' }}>
+                        ${group.totalGross.toFixed(2)} USDC
+                      </p>
+                      {group.totalFee > 0 && (
+                        <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#dc3545' }}>
+                          Fee: ${group.totalFee.toFixed(2)}
+                        </p>
+                      )}
+                      <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', color: '#007bff' }}>
+                        Net: ${group.totalNet.toFixed(2)} USDC
+                      </p>
+                    </div>
+                    <div>
+                      <h4 style={{ color: '#333', marginBottom: '10px' }}>Status</h4>
+                      <p style={{ 
+                        margin: '0 0 5px 0', 
+                        fontWeight: 'bold', 
+                        color: getStatusColor(group.status),
+                        textTransform: 'uppercase'
+                      }}>
+                        {group.status}
+                      </p>
+                      <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>
+                        {new Date(group.latestDate).toLocaleString()}
+                      </p>
+                      {group.withdrawals[0]?.txHash && (
+                        <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666', wordBreak: 'break-all' }}>
+                          TX: {group.withdrawals[0].txHash}
+                        </p>
+                      )}
+                      <button
+                        onClick={() => setExpandedUser(expandedUser === group.user?._id ? null : group.user?._id)}
+                        style={{
+                          background: '#17a2b8',
+                          color: 'white',
+                          border: 'none',
+                          padding: '6px 12px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          marginTop: '5px'
+                        }}
+                      >
+                        {expandedUser === group.user?._id ? 'Hide' : 'Show'} Details
+                      </button>
+                    </div>
                   </div>
+                  
+                  {expandedUser === group.user?._id && (
+                    <div style={{ marginTop: '15px', padding: '15px', background: '#f8f9fa', borderRadius: '8px' }}>
+                      <h5 style={{ color: '#333', marginBottom: '10px' }}>Individual Withdrawals:</h5>
+                      {group.withdrawals.map((w) => (
+                        <div key={w._id} style={{ 
+                          background: 'white', 
+                          padding: '10px', 
+                          borderRadius: '6px', 
+                          marginBottom: '8px',
+                          fontSize: '12px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <p style={{ margin: '0 0 3px 0', fontWeight: 'bold' }}>
+                                ${(w.grossAmount || w.amount || 0).toFixed(2)} USDC
+                              </p>
+                              <p style={{ margin: '0 0 3px 0', fontSize: '11px', color: '#666' }}>
+                                {new Date(w.createdAt || w.requestedAt).toLocaleString()}
+                              </p>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              {(w.feeAmount || 0) > 0 && (
+                                <p style={{ margin: '0 0 3px 0', fontSize: '11px', color: '#dc3545' }}>
+                                  Fee: ${(w.feeAmount || 0).toFixed(2)}
+                                </p>
+                              )}
+                              <p style={{ margin: '0', fontWeight: 'bold', color: '#007bff' }}>
+                                Net: ${(w.netAmount || w.amount || 0).toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))
+              ));
+            })()
           ) : (
             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
               <p>No withdrawal history</p>
