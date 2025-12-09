@@ -17,6 +17,15 @@ const UserManagement = () => {
   const [showUpdateScore, setShowUpdateScore] = useState(null);
   const [scoreChange, setScoreChange] = useState('');
   const [scoreNote, setScoreNote] = useState('');
+  const [showRegisterUser, setShowRegisterUser] = useState(null);
+  const [registerData, setRegisterData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    password: '',
+    withdrawalPassword: ''
+  });
 
   const fetchUsers = async () => {
     try {
@@ -104,6 +113,38 @@ const UserManagement = () => {
       setConfirmPassword('');
     } catch (error) {
       alert(error.response?.data?.error || 'Failed to reset password');
+    }
+  };
+
+  const registerUserUnder = async (referrerId) => {
+    if (!registerData.firstName || !registerData.lastName || !registerData.email || 
+        !registerData.phone || !registerData.password || !registerData.withdrawalPassword) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API_URL}/admin-register`, {
+        ...registerData,
+        referrerId
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      alert('User registered successfully!');
+      setShowRegisterUser(null);
+      setRegisterData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        password: '',
+        withdrawalPassword: ''
+      });
+      fetchUsers();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Registration failed');
     }
   };
 
@@ -314,6 +355,20 @@ const UserManagement = () => {
                 >
                   🏆 Update Score
                 </button>
+                <button
+                  onClick={() => setShowRegisterUser(showRegisterUser === user._id ? null : user._id)}
+                  style={{
+                    background: '#6f42c1',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  👤 Register User
+                </button>
                 {!user.isAdmin && (
                   <button
                     onClick={() => toggleBlockUser(user._id)}
@@ -411,6 +466,154 @@ const UserManagement = () => {
                         setShowUpdateScore(null);
                         setScoreChange('');
                         setScoreNote('');
+                      }}
+                      style={{
+                        background: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ❌ Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Register User Form */}
+            {showRegisterUser === user._id && (
+              <div style={{ marginTop: '20px', padding: '15px', background: '#f3e5f5', borderRadius: '8px', border: '2px solid #6f42c1' }}>
+                <h5 style={{ color: '#4a148c', margin: '0 0 10px 0' }}>
+                  👤 Register New User Under {user.firstName} {user.lastName}
+                </h5>
+                <div style={{ display: 'grid', gap: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>First Name</label>
+                      <input
+                        type="text"
+                        value={registerData.firstName}
+                        onChange={(e) => setRegisterData({...registerData, firstName: e.target.value})}
+                        placeholder="First Name"
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          borderRadius: '6px',
+                          border: '1px solid #ddd',
+                          fontSize: '14px'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Last Name</label>
+                      <input
+                        type="text"
+                        value={registerData.lastName}
+                        onChange={(e) => setRegisterData({...registerData, lastName: e.target.value})}
+                        placeholder="Last Name"
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          borderRadius: '6px',
+                          border: '1px solid #ddd',
+                          fontSize: '14px'
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Email</label>
+                    <input
+                      type="email"
+                      value={registerData.email}
+                      onChange={(e) => setRegisterData({...registerData, email: e.target.value})}
+                      placeholder="Email Address"
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        border: '1px solid #ddd',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Phone</label>
+                    <input
+                      type="tel"
+                      value={registerData.phone}
+                      onChange={(e) => setRegisterData({...registerData, phone: e.target.value})}
+                      placeholder="Phone Number"
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        border: '1px solid #ddd',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Login Password</label>
+                    <input
+                      type="password"
+                      value={registerData.password}
+                      onChange={(e) => setRegisterData({...registerData, password: e.target.value})}
+                      placeholder="Login Password"
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        border: '1px solid #ddd',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Withdrawal Password</label>
+                    <input
+                      type="password"
+                      value={registerData.withdrawalPassword}
+                      onChange={(e) => setRegisterData({...registerData, withdrawalPassword: e.target.value})}
+                      placeholder="Withdrawal Password"
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        border: '1px solid #ddd',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                    <button
+                      onClick={() => registerUserUnder(user._id)}
+                      style={{
+                        background: '#6f42c1',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      ✅ Register User
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowRegisterUser(null);
+                        setRegisterData({
+                          firstName: '',
+                          lastName: '',
+                          email: '',
+                          phone: '',
+                          password: '',
+                          withdrawalPassword: ''
+                        });
                       }}
                       style={{
                         background: '#6c757d',
