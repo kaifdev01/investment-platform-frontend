@@ -124,13 +124,18 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
       .flatMap(investment =>
         investment.cycleEarnings
           .filter(cycle => !cycle.withdrawalRequested)
-          .map(cycle => cycle.grossAmount)
+          .map(cycle => ({
+            amount: cycle.grossAmount,
+            isMini: investment.amount === 500 && investment.tier === 'Mini'
+          }))
       );
 
-    const cycleEarnings = availableCycles.reduce((sum, amount) => sum + amount, 0);
+    const cycleEarnings = availableCycles.reduce((sum, cycle) => sum + cycle.amount, 0);
+    const miniEarnings = availableCycles.filter(c => c.isMini).reduce((sum, cycle) => sum + cycle.amount, 0);
+    const otherEarnings = availableCycles.filter(c => !c.isMini).reduce((sum, cycle) => sum + cycle.amount, 0);
     const userBalance = dashboardData?.accountSummary?.balance || 0;
     const referralRewards = dashboardData?.accountSummary?.referralRewards || 0;
-    const totalAvailable = (cycleEarnings * 0.85) + userBalance + referralRewards;
+    const totalAvailable = miniEarnings + (otherEarnings * 0.85) + userBalance + referralRewards;
 
     if (parseFloat(withdrawalAmount) > totalAvailable) {
       toast.error(`Insufficient funds. Available: $${totalAvailable.toFixed(2)}`);
@@ -255,7 +260,9 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                     Daily Rate: {investment.dailyRate}%
                   </p>
                   <p style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>
-                    Total Earned: ${((investment.totalEarned || 0) * 0.85).toFixed(2)} (Net)
+                    Total Earned: ${investment.amount === 500 && investment.tier === 'Mini' ? 
+                      (investment.totalEarned || 0).toFixed(2) : 
+                      ((investment.totalEarned || 0) * 0.85).toFixed(2)} (Net)
                   </p>
                   <p style={{ fontSize: '14px', color: 'orange', marginBottom: '4px' }}>Withdrawals may take up to 48 hours to process.</p>
                 </div>
@@ -421,11 +428,16 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
               .flatMap(investment =>
                 investment.cycleEarnings
                   .filter(cycle => !cycle.withdrawalRequested)
-                  .map(cycle => cycle.grossAmount)
+                  .map(cycle => ({
+                    amount: cycle.grossAmount,
+                    isMini: investment.amount === 500 && investment.tier === 'Mini'
+                  }))
               );
 
             // Include USDC balance and referral rewards
-            const cycleEarnings = availableCycles.reduce((sum, amount) => sum + amount, 0);
+            const cycleEarnings = availableCycles.reduce((sum, cycle) => sum + cycle.amount, 0);
+            const miniEarnings = availableCycles.filter(c => c.isMini).reduce((sum, cycle) => sum + cycle.amount, 0);
+            const otherEarnings = availableCycles.filter(c => !c.isMini).reduce((sum, cycle) => sum + cycle.amount, 0);
             const userBalance = dashboardData?.accountSummary?.balance || 0;
             const referralRewards = dashboardData?.accountSummary?.referralRewards || 0;
 
@@ -433,7 +445,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
             const completedWithdrawals = withdrawals.filter(w => w.status === 'completed' || w.status === 'approved');
             const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending');
 
-            const totalAvailable = cycleEarnings + userBalance + referralRewards;
+            const totalAvailable = miniEarnings + (otherEarnings * 0.85) + userBalance + referralRewards;
             const totalPending = pendingWithdrawals.reduce((sum, w) => sum + (w.netAmount || w.amount * 0.85), 0);
             const totalWithdrawn = completedWithdrawals.reduce((sum, w) => sum + (w.netAmount || w.amount * 0.85), 0);
             const totalEarnings = cycleEarnings; // Current available earnings only
@@ -458,7 +470,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                     <div style={{ textAlign: 'center' }}>
                       <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>Available to Withdraw</p>
                       <p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#28a745' }}>
-                        ${(cycleEarnings * 0.85 + userBalance + referralRewards).toFixed(2)}
+                        ${(miniEarnings + (otherEarnings * 0.85) + userBalance + referralRewards).toFixed(2)}
                       </p>
                       <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: '#666' }}>
                         USDC + Referral
@@ -495,7 +507,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                             fontWeight: 'bold'
                           }}
                         >
-                          💰 Withdraw All Available (${(cycleEarnings * 0.85 + userBalance + referralRewards).toFixed(2)})
+                          💰 Withdraw All Available (${(miniEarnings + (otherEarnings * 0.85) + userBalance + referralRewards).toFixed(2)})
                         </button>
                       ) : (
                         <div style={{
@@ -508,7 +520,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                         }}>
                           <h5 style={{ color: '#856404', margin: '0 0 10px 0' }}>Withdraw Funds</h5>
                           <p style={{ color: '#856404', fontSize: '12px', margin: '0 0 10px 0' }}>
-                            Available: ${(cycleEarnings * 0.85 + userBalance + referralRewards).toFixed(2)} (15% fee only on earnings)
+                            Available: ${(miniEarnings + (otherEarnings * 0.85) + userBalance + referralRewards).toFixed(2)} (15% fee only on non-Mini earnings)
                           </p>
                           <input
                             type="text"
@@ -531,7 +543,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                             value={withdrawalAmount}
                             onChange={(e) => setWithdrawalAmount(e.target.value)}
                             min="0"
-                            max={(cycleEarnings * 0.85 + userBalance + referralRewards).toFixed(2)}
+                            max={(miniEarnings + (otherEarnings * 0.85) + userBalance + referralRewards).toFixed(2)}
                             step="0.01"
                             style={{
                               width: '100%',
