@@ -54,14 +54,14 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
   };
 
   const completeCycle = async (investmentId) => {
-    const now = new Date();
-    const dayOfWeek = now.getDay();
+    // TESTING: Remove weekend restrictions
+    // const now = new Date();
+    // const dayOfWeek = now.getDay();
 
-    // Block completing cycles on weekends
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      toast.error('Earnings cannot be completed on weekends. Please wait until Monday.');
-      return;
-    }
+    // if (dayOfWeek === 0 || dayOfWeek === 6) {
+    //   toast.error('Earnings cannot be completed on weekends. Please wait until Monday.');
+    //   return;
+    // }
 
     try {
       const token = localStorage.getItem('token');
@@ -125,31 +125,40 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
         investment.cycleEarnings
           .filter(cycle => !cycle.withdrawalRequested)
           .map(cycle => ({
-            amount: cycle.grossAmount,
-            isMini: investment.amount === 500 && investment.tier === 'Mini'
+            grossAmount: cycle.grossAmount || cycle.netAmount,
+            netAmount: cycle.netAmount || (cycle.grossAmount * (investment.amount === 250 || investment.amount === 500 ? 1 : 0.85)),
+            isNoFee: investment.amount === 250 || investment.amount === 500
           }))
       );
 
-    const cycleEarnings = availableCycles.reduce((sum, cycle) => sum + cycle.amount, 0);
-    const miniEarnings = availableCycles.filter(c => c.isMini).reduce((sum, cycle) => sum + cycle.amount, 0);
-    const otherEarnings = availableCycles.filter(c => !c.isMini).reduce((sum, cycle) => sum + cycle.amount, 0);
+    const cycleEarnings = availableCycles.reduce((sum, cycle) => sum + cycle.netAmount, 0);
+    const noFeeEarnings = availableCycles.filter(c => c.isNoFee).reduce((sum, cycle) => sum + cycle.netAmount, 0);
+    const feeEarnings = availableCycles.filter(c => !c.isNoFee).reduce((sum, cycle) => sum + cycle.netAmount, 0);
     const userBalance = dashboardData?.accountSummary?.balance || 0;
     const referralRewards = dashboardData?.accountSummary?.referralRewards || 0;
-    const totalAvailable = miniEarnings + (otherEarnings * 0.85) + userBalance + referralRewards;
+    const totalAvailable = noFeeEarnings + feeEarnings + userBalance + referralRewards;
 
     if (parseFloat(withdrawalAmount) > totalAvailable) {
       toast.error(`Insufficient funds. Available: $${totalAvailable.toFixed(2)}`);
       return;
     }
 
+    console.log('=== FRONTEND WITHDRAWAL REQUEST ===');
+    console.log('Wallet Address:', walletAddress);
+    console.log('Withdrawal Password:', withdrawalPassword);
+    console.log('Withdrawal Amount:', withdrawalAmount);
+    
     try {
       const token = localStorage.getItem('token');
+      const requestData = { 
+        walletAddress, 
+        withdrawalPassword,
+        amount: parseFloat(withdrawalAmount)
+      };
+      console.log('Request data being sent:', requestData);
+      
       const response = await axios.post(`${API_URL}/withdrawal/request-all`,
-        { 
-          walletAddress, 
-          withdrawalPassword,
-          amount: parseFloat(withdrawalAmount)
-        },
+        requestData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -260,9 +269,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                     Daily Rate: {investment.dailyRate}%
                   </p>
                   <p style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>
-                    Total Earned: ${investment.amount === 500 && investment.tier === 'Mini' ? 
-                      (investment.totalEarned || 0).toFixed(2) : 
-                      ((investment.totalEarned || 0) * 0.85).toFixed(2)} (Net)
+                    Total Earned: ${(investment.totalEarned || 0).toFixed(2)} (Net)
                   </p>
                   <p style={{ fontSize: '14px', color: 'orange', marginBottom: '4px' }}>Withdrawals may take up to 48 hours to process.</p>
                 </div>
@@ -367,7 +374,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                           Ready to Start Earning
                         </p>
                         <p style={{ fontSize: '12px', color: '#0066cc' }}>
-                          {investment.totalEarned > 0 ? 'Start new 8-hour earning cycle' : '8-hour earning cycle'} (Mon-Fri only)
+                          {investment.totalEarned > 0 ? 'Start new 8-hour earning cycle' : '8-hour earning cycle'}
                         </p>
                       </div>
                       <button
@@ -429,15 +436,15 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                 investment.cycleEarnings
                   .filter(cycle => !cycle.withdrawalRequested)
                   .map(cycle => ({
-                    amount: cycle.grossAmount,
-                    isMini: investment.amount === 500 && investment.tier === 'Mini'
+                    amount: cycle.netAmount || (cycle.grossAmount * (investment.amount === 250 || investment.amount === 500 ? 1 : 0.85)),
+                    isNoFee: investment.amount === 250 || investment.amount === 500
                   }))
               );
 
             // Include USDC balance and referral rewards
             const cycleEarnings = availableCycles.reduce((sum, cycle) => sum + cycle.amount, 0);
-            const miniEarnings = availableCycles.filter(c => c.isMini).reduce((sum, cycle) => sum + cycle.amount, 0);
-            const otherEarnings = availableCycles.filter(c => !c.isMini).reduce((sum, cycle) => sum + cycle.amount, 0);
+            const noFeeEarnings = availableCycles.filter(c => c.isNoFee).reduce((sum, cycle) => sum + cycle.amount, 0);
+            const feeEarnings = availableCycles.filter(c => !c.isNoFee).reduce((sum, cycle) => sum + cycle.amount, 0);
             const userBalance = dashboardData?.accountSummary?.balance || 0;
             const referralRewards = dashboardData?.accountSummary?.referralRewards || 0;
 
@@ -445,7 +452,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
             const completedWithdrawals = withdrawals.filter(w => w.status === 'completed' || w.status === 'approved');
             const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending');
 
-            const totalAvailable = miniEarnings + (otherEarnings * 0.85) + userBalance + referralRewards;
+            const totalAvailable = noFeeEarnings + feeEarnings + userBalance + referralRewards;
             const totalPending = pendingWithdrawals.reduce((sum, w) => sum + (w.netAmount || w.amount * 0.85), 0);
             const totalWithdrawn = completedWithdrawals.reduce((sum, w) => sum + (w.netAmount || w.amount * 0.85), 0);
             const totalEarnings = cycleEarnings; // Current available earnings only
@@ -470,7 +477,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                     <div style={{ textAlign: 'center' }}>
                       <p style={{ margin: '0 0 5px 0', fontSize: '12px', color: '#666' }}>Available to Withdraw</p>
                       <p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#28a745' }}>
-                        ${(miniEarnings + (otherEarnings * 0.85) + userBalance + referralRewards).toFixed(2)}
+                        ${(noFeeEarnings + feeEarnings + userBalance + referralRewards).toFixed(2)}
                       </p>
                       <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: '#666' }}>
                         USDC + Referral
@@ -507,7 +514,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                             fontWeight: 'bold'
                           }}
                         >
-                          💰 Withdraw All Available (${(miniEarnings + (otherEarnings * 0.85) + userBalance + referralRewards).toFixed(2)})
+                          💰 Withdraw All Available (${(noFeeEarnings + feeEarnings + userBalance + referralRewards).toFixed(2)})
                         </button>
                       ) : (
                         <div style={{
@@ -520,13 +527,15 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                         }}>
                           <h5 style={{ color: '#856404', margin: '0 0 10px 0' }}>Withdraw Funds</h5>
                           <p style={{ color: '#856404', fontSize: '12px', margin: '0 0 10px 0' }}>
-                            Available: ${(miniEarnings + (otherEarnings * 0.85) + userBalance + referralRewards).toFixed(2)} (15% fee only on non-Mini earnings)
+                            Available: ${(noFeeEarnings + feeEarnings + userBalance + referralRewards).toFixed(2)} (15% fee only on higher tiers)
                           </p>
+                          <form autoComplete="off">
                           <input
                             type="text"
                             placeholder="Enter your wallet address"
                             value={walletAddress}
                             onChange={(e) => setWalletAddress(e.target.value)}
+                            autoComplete="off"
                             style={{
                               width: '100%',
                               padding: '8px',
@@ -543,8 +552,9 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                             value={withdrawalAmount}
                             onChange={(e) => setWithdrawalAmount(e.target.value)}
                             min="0"
-                            max={(miniEarnings + (otherEarnings * 0.85) + userBalance + referralRewards).toFixed(2)}
+                            max={(noFeeEarnings + feeEarnings + userBalance + referralRewards).toFixed(2)}
                             step="0.01"
+                            autoComplete="off"
                             style={{
                               width: '100%',
                               padding: '8px',
@@ -560,6 +570,8 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                             placeholder="Enter withdrawal password"
                             value={withdrawalPassword}
                             onChange={(e) => setWithdrawalPassword(e.target.value)}
+                            autoComplete="new-password"
+                            name="withdrawal-password-new"
                             style={{
                               width: '100%',
                               padding: '8px',
@@ -570,6 +582,7 @@ const NewInvestmentEarnings = ({ dashboardData, fetchDashboard }) => {
                               boxSizing: 'border-box'
                             }}
                           />
+                          </form>
                           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                             <button
                               onClick={handleWithdrawAll}
